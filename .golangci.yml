@@ -1,0 +1,86 @@
+version: "2"
+run:
+  tests: true
+linters:
+  enable:
+    - bodyclose
+    - goconst
+    - gocyclo
+    - gosec
+    - nolintlint
+    - govet
+    - errcheck
+    - errname
+    - ineffassign
+    - unused
+    - staticcheck
+    - cyclop
+    - copyloopvar
+    - asasalint
+    - bidichk
+    - exhaustive
+    - gocognit
+    - gocritic
+    - iface
+    - lll
+    - whitespace
+    - zerologlint
+    - forcetypeassert
+    - makezero
+    - dogsled
+    - tparallel
+    - testifylint
+    - noctx
+    - decorder
+    - fatcontext
+    - gosmopolitan
+  disable:
+    - err113
+  settings:
+    dupl:
+      threshold: 100
+    gocognit:
+      min-complexity: 20
+    goconst:
+      min-len: 3
+      min-occurrences: 2
+    gocyclo:
+      min-complexity: 15
+    cyclop:
+      max-complexity: 15
+    gocritic:
+      disabled-checks:
+        - exitAfterDefer
+      enabled-checks:
+        - rangeValCopy
+    dogsled:
+      max-blank-identifiers: 2
+  exclusions:
+    generated: lax
+    rules:
+      - path: (.+)\.go$
+        text: error return value not checked
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+      - _test\.go
+      - docs\.go
+      - swagger\.go
+formatters:
+  enable:
+    - gofmt
+    - goimports
+    - golines
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/pixel365/pulse
+    golines:
+      max-len: 120

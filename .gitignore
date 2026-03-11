@@ -1,0 +1,14 @@
+vendor/
+bin/
+build/
+data/
+
+*.out
+*.log
+*.tgz
+*.txt
+*.xml
+.env
+*.cnf
+*.crt
+*.key
