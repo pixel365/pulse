@@ -1,0 +1,107 @@
+checks:
+  - id: api-http
+    service: api
+    enabled: true
+    name: API HTTP
+    type: http
+    interval: 10s
+    timeout: 5s
+    jitter: 2s
+    retries: 3
+    failure_threshold: 3
+    success_threshold: 1
+    tags: [ public, critical ]
+    spec:
+      url: http://localhost:8080
+      method: GET
+      headers:
+        Accept: application/json
+        Content-Type: application/json
+        Authorization: Bearer xxx
+        X-Custom-Header: yyy
+      payload:
+        key1: value1
+        key2: value2
+      follow_redirects: true
+      success_codes: [ 200 ]
+      expected_body:
+        contains: ok
+
+  - id: api-tcp
+    service: api
+    enabled: true
+    name: API TCP
+    type: tcp
+    interval: 10s
+    timeout: 5s
+    jitter: 2s
+    retries: 3
+    failure_threshold: 3
+    success_threshold: 1
+    tags: [ public, critical ]
+    spec:
+      host: localhost
+      port: 8080
+      send: ping
+      expect:
+        contains: pong
+
+  - id: api-grpc-health
+    service: api
+    enabled: true
+    name: API gRPC Health
+    type: grpc
+    interval: 10s
+    timeout: 5s
+    jitter: 2s
+    retries: 3
+    failure_threshold: 3
+    success_threshold: 1
+    tags: [ internal, critical ]
+    spec:
+      host: localhost
+      port: 8080
+      service: grpc.health.v1.Health
+      method: Check
+      request:
+        service: ""
+      metadata:
+        authorization: Bearer xxx
+      expected_status: SERVING
+
+  - id: api-dns
+    service: api
+    enabled: true
+    name: API DNS
+    type: dns
+    interval: 30s
+    timeout: 5s
+    jitter: 2s
+    retries: 3
+    failure_threshold: 3
+    success_threshold: 1
+    tags: [ public, critical ]
+    spec:
+      server: 8.8.8.8
+      name: api.example.com
+      record_type: A
+      expect:
+        contains: 203.0.113.10
+
+  - id: api-tls
+    service: api
+    enabled: true
+    name: API TLS Certificate
+    type: tls
+    interval: 5m
+    timeout: 5s
+    jitter: 10s
+    retries: 2
+    failure_threshold: 2
+    success_threshold: 1
+    tags: [ public, security ]
+    spec:
+      host: api.example.com
+      port: 443
+      server_name: api.example.com
+      min_validity: 720h

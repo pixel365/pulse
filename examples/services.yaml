@@ -1,0 +1,3 @@
+services:
+  - id: api
+    name: Public API
