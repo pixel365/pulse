@@ -3,7 +3,6 @@ package http
 import (
 	"context"
 	"crypto/rand"
-	"errors"
 	"math/big"
 	"time"
 
@@ -35,18 +34,7 @@ func (c *Checker) Run(ctx context.Context) error {
 			return nil
 		case <-ticker.C:
 			sleep(ctx, c.config.Jitter)
-
-			err := c.execute(ctx)
-			//TODO: handle errors
-			switch {
-			case errors.Is(err, context.Canceled):
-			case errors.Is(err, context.DeadlineExceeded):
-			case errors.Is(err, ErrCode):
-			case errors.Is(err, ErrResponseBody):
-			case errors.Is(err, ErrCtxCancelled):
-			case errors.Is(err, ErrTimeout):
-			default:
-			}
+			c.execute(ctx)
 		}
 	}
 }

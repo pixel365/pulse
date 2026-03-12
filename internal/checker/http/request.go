@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	h "net/http"
@@ -13,8 +14,8 @@ import (
 	"github.com/pixel365/pulse/internal/config"
 )
 
-func (c *Checker) execute(ctx context.Context) error {
-	var lastErr error
+func (c *Checker) executeWithRetries(ctx context.Context) error {
+	var err error
 
 	attempts := c.config.Retries + 1
 	for i := 0; i < attempts; i++ {
@@ -22,13 +23,29 @@ func (c *Checker) execute(ctx context.Context) error {
 			return ctx.Err()
 		}
 
-		lastErr = c.request(ctx)
-		if lastErr == nil {
+		err = c.request(ctx)
+		if err == nil {
 			return nil
 		}
 	}
 
-	return lastErr
+	return fmt.Errorf("%w: %w", ErrRetriesExceeded, err)
+}
+
+func (c *Checker) execute(ctx context.Context) {
+	err := c.executeWithRetries(ctx)
+
+	//TODO: handle errors, save data
+	switch {
+	case errors.Is(err, context.Canceled):
+	case errors.Is(err, context.DeadlineExceeded):
+	case errors.Is(err, ErrCode):
+	case errors.Is(err, ErrResponseBody):
+	case errors.Is(err, ErrCtxCancelled):
+	case errors.Is(err, ErrTimeout):
+	case errors.Is(err, ErrRetriesExceeded):
+	default:
+	}
 }
 
 func (c *Checker) request(ctx context.Context) error {
