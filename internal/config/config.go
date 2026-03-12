@@ -11,13 +11,13 @@ import (
 )
 
 type Config struct {
+	Services   map[string]Service
+	HttpChecks map[string]TypedCheck[HttpSpec]
+	TCPChecks  map[string]TypedCheck[TCPSpec]
+	GRPCChecks map[string]TypedCheck[GRPCSpec]
+	DNSChecks  map[string]TypedCheck[DNSSpec]
+	TLSChecks  map[string]TypedCheck[TLSSpec]
 	dir        string
-	Services   []Service
-	HttpChecks []TypedCheck[HttpSpec]
-	TCPChecks  []TypedCheck[TCPSpec]
-	GRPCChecks []TypedCheck[GRPCSpec]
-	DNSChecks  []TypedCheck[DNSSpec]
-	TLSChecks  []TypedCheck[TLSSpec]
 }
 
 func MustLoad() *Config {
@@ -26,7 +26,15 @@ func MustLoad() *Config {
 		panic("CONFIG_DIR is not set")
 	}
 
-	cfg := &Config{dir: filepath.Clean(dir)}
+	cfg := &Config{
+		dir:        filepath.Clean(dir),
+		Services:   make(map[string]Service),
+		HttpChecks: make(map[string]TypedCheck[HttpSpec]),
+		TCPChecks:  make(map[string]TypedCheck[TCPSpec]),
+		GRPCChecks: make(map[string]TypedCheck[GRPCSpec]),
+		DNSChecks:  make(map[string]TypedCheck[DNSSpec]),
+		TLSChecks:  make(map[string]TypedCheck[TLSSpec]),
+	}
 	if err := cfg.load(); err != nil {
 		panic(err)
 	}
@@ -52,7 +60,14 @@ func (c *Config) load() error {
 		return fmt.Errorf("failed to validate services: %w", err)
 	}
 
-	c.Services = append(c.Services, services.Services...)
+	for i := range services.Services {
+		svc := services.Services[i]
+		if _, found := c.Services[svc.ID]; found {
+			return fmt.Errorf("duplicate service id: %s", svc.Name)
+		}
+		c.Services[svc.ID] = svc
+	}
+
 	if err = c.readChecks(); err != nil {
 		return fmt.Errorf("failed to read checks: %w", err)
 	}
@@ -109,18 +124,22 @@ func (c *Config) readChecks() error {
 
 func (c *Config) handleChecks(set CheckSet, filename string) error {
 	for i := range set.Checks {
+		if _, found := c.Services[set.Checks[i].Service]; !found {
+			return fmt.Errorf("service %s not found", set.Checks[i].Service)
+		}
+
 		var err error
 		switch set.Checks[i].Type {
 		case HTTP:
-			err = appendTypedCheck[HttpSpec](&c.HttpChecks, set.Checks[i])
+			err = appendTypedCheck[HttpSpec](c.HttpChecks, set.Checks[i])
 		case TCP:
-			err = appendTypedCheck[TCPSpec](&c.TCPChecks, set.Checks[i])
+			err = appendTypedCheck[TCPSpec](c.TCPChecks, set.Checks[i])
 		case GRPC:
-			err = appendTypedCheck[GRPCSpec](&c.GRPCChecks, set.Checks[i])
+			err = appendTypedCheck[GRPCSpec](c.GRPCChecks, set.Checks[i])
 		case DNS:
-			err = appendTypedCheck[DNSSpec](&c.DNSChecks, set.Checks[i])
+			err = appendTypedCheck[DNSSpec](c.DNSChecks, set.Checks[i])
 		case TLS:
-			err = appendTypedCheck[TLSSpec](&c.TLSChecks, set.Checks[i])
+			err = appendTypedCheck[TLSSpec](c.TLSChecks, set.Checks[i])
 		}
 
 		if err != nil {
@@ -150,13 +169,17 @@ func decodeTypedCheck[T any](raw Check) (TypedCheck[T], error) {
 	return typedCheck, nil
 }
 
-func appendTypedCheck[T any](dst *[]TypedCheck[T], raw Check) error {
+func appendTypedCheck[T any](dst map[string]TypedCheck[T], raw Check) error {
+	if _, found := dst[raw.Name]; found {
+		return fmt.Errorf("duplicate check name: %s", raw.Name)
+	}
+
 	typedCheck, err := decodeTypedCheck[T](raw)
 	if err != nil {
 		return err
 	}
 
-	*dst = append(*dst, typedCheck)
+	dst[raw.Name] = typedCheck
 
 	return nil
 }
