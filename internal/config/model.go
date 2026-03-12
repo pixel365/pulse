@@ -85,7 +85,7 @@ type HttpSpec struct {
 	URL          string            `yaml:"url"           json:"url"           validate:"required,url"`
 
 	//nolint:lll,nolintlint
-	Method string `yaml:"method" json:"method" validate:"required,oneof=GET POST PUT PATCH DELETE HEAD OPTIONS"`
+	Method string `yaml:"method" json:"method" validate:"required,oneof=GET POST"`
 
 	SuccessCodes    []int `yaml:"success_codes"    json:"success_codes"    validate:"required,min=1"`
 	FollowRedirects bool  `yaml:"follow_redirects" json:"follow_redirects" validate:"omitempty"`
