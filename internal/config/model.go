@@ -32,13 +32,16 @@ type GRPCHealthRequest struct {
 	Service string `yaml:"service" json:"service"`
 }
 
+type ServiceSet struct {
+	Services []Service `yaml:"services" json:"services" validate:"required,min=1,dive"`
+}
+
 type Service struct {
 	ID   string `yaml:"id"   json:"id"   validate:"required,min=1"`
 	Name string `yaml:"name" json:"name" validate:"required,min=1"`
 }
 
-type Check struct {
-	Spec    any    `yaml:"spec"    json:"spec"    validate:"required"`
+type CheckFields struct {
 	ID      string `yaml:"id"      json:"id"      validate:"required,min=1"`
 	Name    string `yaml:"name"    json:"name"    validate:"required,min=1"`
 	Service string `yaml:"service" json:"service" validate:"required,min=1"`
@@ -55,6 +58,20 @@ type Check struct {
 	SuccessThreshold int           `yaml:"success_threshold" json:"success_threshold" validate:"required,gte=1"`
 	Interval         time.Duration `yaml:"interval"          json:"interval"          validate:"required,gt=0ms"`
 	Enabled          bool          `yaml:"enabled"           json:"enabled"`
+}
+
+type SpecField[T any] struct {
+	Spec T `yaml:"spec" json:"spec" validate:"required"`
+}
+
+type Check struct {
+	SpecField[any] `yaml:",inline" json:",inline"`
+	CheckFields    `yaml:",inline" json:",inline"`
+}
+
+type TypedCheck[T any] struct {
+	SpecField[T] `yaml:",inline" json:",inline"`
+	CheckFields  `yaml:",inline" json:",inline"`
 }
 
 type CheckSet struct {
