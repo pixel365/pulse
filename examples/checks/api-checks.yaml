@@ -86,7 +86,8 @@ checks:
       name: api.example.com
       record_type: A
       expect:
-        contains: 203.0.113.10
+        contains:
+          - 203.0.113.10
 
   - id: api-tls
     service: api

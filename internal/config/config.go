@@ -112,15 +112,15 @@ func (c *Config) handleChecks(set CheckSet, filename string) error {
 		var err error
 		switch set.Checks[i].Type {
 		case HTTP:
-			err = appendTypedCheck(&c.HttpChecks, set.Checks[i])
+			err = appendTypedCheck[HttpSpec](&c.HttpChecks, set.Checks[i])
 		case TCP:
-			err = appendTypedCheck(&c.TCPChecks, set.Checks[i])
+			err = appendTypedCheck[TCPSpec](&c.TCPChecks, set.Checks[i])
 		case GRPC:
-			err = appendTypedCheck(&c.GRPCChecks, set.Checks[i])
+			err = appendTypedCheck[GRPCSpec](&c.GRPCChecks, set.Checks[i])
 		case DNS:
-			err = appendTypedCheck(&c.DNSChecks, set.Checks[i])
+			err = appendTypedCheck[DNSSpec](&c.DNSChecks, set.Checks[i])
 		case TLS:
-			err = appendTypedCheck(&c.TLSChecks, set.Checks[i])
+			err = appendTypedCheck[TLSSpec](&c.TLSChecks, set.Checks[i])
 		}
 
 		if err != nil {
