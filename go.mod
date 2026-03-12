@@ -6,6 +6,7 @@ require (
 	github.com/go-playground/validator/v10 v10.30.1
 	github.com/goccy/go-yaml v1.19.2
 	github.com/joho/godotenv v1.5.1
+	golang.org/x/sync v0.20.0
 )
 
 require (
