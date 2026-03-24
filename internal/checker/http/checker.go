@@ -8,6 +8,7 @@ import (
 
 	"github.com/pixel365/pulse/internal/checker"
 	c "github.com/pixel365/pulse/internal/config"
+	"github.com/pixel365/pulse/internal/model"
 )
 
 type Alias = c.TypedCheck[c.HttpSpec]
@@ -15,11 +16,14 @@ type Alias = c.TypedCheck[c.HttpSpec]
 var _ checker.Checker = (*Checker)(nil)
 
 type Checker struct {
+	writer model.ResultWriter
 	config Alias
 }
 
 func NewChecker(cfg Alias) *Checker {
-	return &Checker{cfg}
+	return &Checker{
+		config: cfg,
+	}
 }
 
 func (c *Checker) Run(ctx context.Context) error {
@@ -34,7 +38,9 @@ func (c *Checker) Run(ctx context.Context) error {
 			return nil
 		case <-ticker.C:
 			sleep(ctx, c.config.Jitter)
-			c.execute(ctx)
+			result := c.execute(ctx)
+			_ = c.writer.Write(ctx, result)
+			//TODO: log
 		}
 	}
 }

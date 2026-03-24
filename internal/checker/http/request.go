@@ -3,6 +3,7 @@ package http
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,42 +11,63 @@ import (
 	h "net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/pixel365/pulse/internal/config"
+	"github.com/pixel365/pulse/internal/model"
 )
 
-func (c *Checker) executeWithRetries(ctx context.Context) error {
+func (c *Checker) execute(ctx context.Context) model.CheckExecutionResult {
 	var err error
 
+	result := model.CheckExecutionResult{
+		ExecutionID: rand.Text(),
+		CheckID:     c.config.ID,
+		ServiceID:   c.config.Service,
+		CheckType:   c.config.Type,
+		Status:      model.Success,
+		StartedAt:   time.Now().UTC(),
+	}
 	attempts := c.config.Retries + 1
 	for i := 0; i < attempts; i++ {
+		result.AttemptsTotal = i + 1
+
 		if ctx.Err() != nil {
-			return ctx.Err()
+			err = ctx.Err()
+			break
 		}
 
-		err = c.request(ctx)
-		if err == nil {
-			return nil
+		err = nil
+		reqErr := c.request(ctx)
+		if reqErr != nil {
+			err = reqErr
+			continue
 		}
 	}
 
-	return fmt.Errorf("%w: %w", ErrRetriesExceeded, err)
-}
+	result.FinishedAt = time.Now().UTC()
+	result.Duration = result.FinishedAt.Sub(result.StartedAt)
 
-func (c *Checker) execute(ctx context.Context) {
-	err := c.executeWithRetries(ctx)
-
-	//TODO: handle errors, save data
-	switch {
-	case errors.Is(err, context.Canceled):
-	case errors.Is(err, context.DeadlineExceeded):
-	case errors.Is(err, ErrCode):
-	case errors.Is(err, ErrResponseBody):
-	case errors.Is(err, ErrCtxCancelled):
-	case errors.Is(err, ErrTimeout):
-	case errors.Is(err, ErrRetriesExceeded):
-	default:
+	if err != nil {
+		result.Status = model.Failure
+		switch {
+		case errors.Is(err, context.Canceled),
+			errors.Is(err, context.DeadlineExceeded),
+			errors.Is(err, ErrCtxCancelled),
+			errors.Is(err, ErrTimeout):
+			result.ErrorKind = model.ErrTimeout
+		case errors.Is(err, ErrResponseBody):
+			result.ErrorKind = model.ErrResponseBody
+		case errors.Is(err, ErrCode):
+			result.ErrorKind = model.ErrStatusCode
+		default:
+			result.ErrorKind = model.ErrUnknown
+		}
+	} else {
+		result.Status = model.Success
 	}
+
+	return result
 }
 
 func (c *Checker) request(ctx context.Context) error {
@@ -72,7 +94,7 @@ func (c *Checker) request(ctx context.Context) error {
 	}
 
 	for k, v := range c.config.Spec.Headers {
-		req.Header.Add(k, v)
+		req.Header.Set(k, v)
 	}
 
 	res, err := cl.Do(req)
