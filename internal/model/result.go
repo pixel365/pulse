@@ -31,3 +31,9 @@ type CheckExecutionResult struct {
 	Duration      time.Duration
 	AttemptsTotal int
 }
+
+type FakeWriter struct{}
+
+func (f FakeWriter) Write(_ context.Context, _ CheckExecutionResult) error {
+	return nil
+}

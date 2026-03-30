@@ -21,6 +21,7 @@ type Checker struct {
 
 func NewChecker(cfg Alias) *Checker {
 	return &Checker{
+		writer: model.FakeWriter{},
 		config: cfg,
 	}
 }
