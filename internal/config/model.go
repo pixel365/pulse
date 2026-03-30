@@ -4,6 +4,7 @@ import "time"
 
 type CheckType string
 type GRPCHealthStatus string
+type RecordType string
 
 const (
 	HTTP CheckType = "http"
@@ -16,6 +17,14 @@ const (
 	GRPCHealthServing        GRPCHealthStatus = "SERVING"
 	GRPCHealthNotServing     GRPCHealthStatus = "NOT_SERVING"
 	GRPCHealthServiceUnknown GRPCHealthStatus = "SERVICE_UNKNOWN"
+
+	ARecord     RecordType = "A"
+	AAAARecord  RecordType = "AAAA"
+	CNAMERecord RecordType = "CNAME"
+	TXTRecord   RecordType = "TXT"
+	MXRecord    RecordType = "MX"
+	NSRecord    RecordType = "NS"
+	SRVRecord   RecordType = "SRV"
 )
 
 type StringExpect struct {
@@ -113,9 +122,9 @@ type GRPCSpec struct {
 
 type DNSSpec struct {
 	Expect     *DNSExpect `yaml:"expect"      json:"expect"      validate:"omitempty"`
-	Server     string     `yaml:"server"      json:"server"      validate:"required,hostname_rfc1123|ip"`
+	Server     string     `yaml:"server"      json:"server"      validate:"omitempty,hostname_rfc1123|ip"`
 	Name       string     `yaml:"name"        json:"name"        validate:"required,min=1"`
-	RecordType string     `yaml:"record_type" json:"record_type" validate:"required,oneof=A AAAA CNAME TXT MX NS SRV"`
+	RecordType RecordType `yaml:"record_type" json:"record_type" validate:"required,oneof=A AAAA CNAME TXT MX NS SRV"`
 }
 
 type TLSSpec struct {

@@ -28,6 +28,7 @@ func (c *Checker) execute(ctx context.Context) model.CheckExecutionResult {
 		Status:      model.Success,
 		StartedAt:   time.Now().UTC(),
 	}
+
 	attempts := c.config.Retries + 1
 	for i := 0; i < attempts; i++ {
 		result.AttemptsTotal = i + 1
@@ -43,6 +44,7 @@ func (c *Checker) execute(ctx context.Context) model.CheckExecutionResult {
 			err = reqErr
 			continue
 		}
+		break
 	}
 
 	result.FinishedAt = time.Now().UTC()
