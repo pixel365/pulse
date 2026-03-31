@@ -24,8 +24,8 @@ func main() {
 
 	cfg := config.MustLoad()
 
-	runner := app.New()
-	if err := runner.Run(ctx, cfg); err != nil {
+	runner := app.NewApp(cfg)
+	if err := runner.Run(ctx); err != nil {
 		stop()
 		log.Fatalf("app run error: %v", err)
 	}

@@ -4,13 +4,12 @@ import (
 	"context"
 
 	"github.com/pixel365/pulse/internal"
-	"github.com/pixel365/pulse/internal/checker"
 	c "github.com/pixel365/pulse/internal/config"
 )
 
 type Alias = c.TypedCheck[c.DNSSpec]
 
-var _ checker.Checker = (*Checker)(nil)
+var _ internal.Checker = (*Checker)(nil)
 
 type Checker struct {
 	executor internal.CheckExecutor
@@ -24,6 +23,6 @@ func NewChecker(cfg Alias, executor internal.CheckExecutor) *Checker {
 	}
 }
 
-func (c *Checker) Run(ctx context.Context) error {
+func (c *Checker) Check(ctx context.Context) error {
 	return c.executor.Execute(ctx, c.request)
 }

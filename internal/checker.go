@@ -1,9 +1,9 @@
-package checker
+package internal
 
 import (
 	"context"
 )
 
 type Checker interface {
-	Run(context.Context) error
+	Check(context.Context) error
 }
