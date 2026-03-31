@@ -1,9 +1,9 @@
 module github.com/pixel365/pulse
 
-go 1.25.7
+go 1.26.1
 
 require (
-	github.com/go-playground/validator/v10 v10.30.1
+	github.com/go-playground/validator/v10 v10.30.2
 	github.com/goccy/go-yaml v1.19.2
 	github.com/joho/godotenv v1.5.1
 	github.com/miekg/dns v1.1.72
