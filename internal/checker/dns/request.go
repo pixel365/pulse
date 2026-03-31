@@ -2,60 +2,15 @@ package dns
 
 import (
 	"context"
-	"crypto/rand"
 	"fmt"
 	"net"
 	"slices"
 	"strings"
-	"time"
-
-	c "github.com/pixel365/pulse/internal/config"
-	"github.com/pixel365/pulse/internal/model"
 
 	mdns "github.com/miekg/dns"
+
+	"github.com/pixel365/pulse/internal/config"
 )
-
-func (c *Checker) execute(ctx context.Context) model.CheckExecutionResult {
-	var err error
-
-	result := model.CheckExecutionResult{
-		ExecutionID: rand.Text(),
-		CheckID:     c.config.ID,
-		ServiceID:   c.config.Service,
-		CheckType:   c.config.Type,
-		Status:      model.Success,
-		StartedAt:   time.Now().UTC(),
-	}
-
-	attempts := c.config.Retries + 1
-	for i := 0; i < attempts; i++ {
-		result.AttemptsTotal = i + 1
-
-		if ctx.Err() != nil {
-			err = ctx.Err()
-			break
-		}
-
-		err = nil
-		reqErr := c.request(ctx)
-		if reqErr != nil {
-			err = reqErr
-			continue
-		}
-		break
-	}
-
-	result.FinishedAt = time.Now().UTC()
-	result.Duration = result.FinishedAt.Sub(result.StartedAt)
-
-	if err != nil {
-		result.Status = model.Failure
-	} else {
-		result.Status = model.Success
-	}
-
-	return result
-}
 
 func (c *Checker) request(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, c.config.Timeout)
@@ -148,21 +103,21 @@ func exchangeDNS(ctx context.Context, req *mdns.Msg, server string) (*mdns.Msg, 
 	return nil, tcpErr
 }
 
-func recordTypeToQType(recordType c.RecordType) uint16 {
+func recordTypeToQType(recordType config.RecordType) uint16 {
 	switch recordType {
-	case c.ARecord:
+	case config.ARecord:
 		return mdns.TypeA
-	case c.AAAARecord:
+	case config.AAAARecord:
 		return mdns.TypeAAAA
-	case c.CNAMERecord:
+	case config.CNAMERecord:
 		return mdns.TypeCNAME
-	case c.TXTRecord:
+	case config.TXTRecord:
 		return mdns.TypeTXT
-	case c.MXRecord:
+	case config.MXRecord:
 		return mdns.TypeMX
-	case c.NSRecord:
+	case config.NSRecord:
 		return mdns.TypeNS
-	case c.SRVRecord:
+	case config.SRVRecord:
 		return mdns.TypeSRV
 	default:
 		return 0
@@ -177,7 +132,7 @@ func normalizeServer(server string) string {
 	return net.JoinHostPort(server, "53")
 }
 
-func collectAnswers(records []mdns.RR, recordType c.RecordType) ([]string, error) {
+func collectAnswers(records []mdns.RR, recordType config.RecordType) ([]string, error) {
 	values := make([]string, 0, len(records))
 
 	for _, record := range records {
@@ -192,40 +147,40 @@ func collectAnswers(records []mdns.RR, recordType c.RecordType) ([]string, error
 	return uniqueSorted(values), nil
 }
 
-func recordValue(record mdns.RR, recordType c.RecordType) (string, bool) {
+func recordValue(record mdns.RR, recordType config.RecordType) (string, bool) {
 	switch rr := record.(type) {
 	case *mdns.A:
-		if recordType != c.ARecord {
+		if recordType != config.ARecord {
 			return "", false
 		}
 		return rr.A.String(), true
 	case *mdns.AAAA:
-		if recordType != c.AAAARecord {
+		if recordType != config.AAAARecord {
 			return "", false
 		}
 		return rr.AAAA.String(), true
 	case *mdns.CNAME:
-		if recordType != c.CNAMERecord {
+		if recordType != config.CNAMERecord {
 			return "", false
 		}
 		return rr.Target, true
 	case *mdns.TXT:
-		if recordType != c.TXTRecord {
+		if recordType != config.TXTRecord {
 			return "", false
 		}
 		return strings.Join(rr.Txt, ""), true
 	case *mdns.MX:
-		if recordType != c.MXRecord {
+		if recordType != config.MXRecord {
 			return "", false
 		}
 		return fmt.Sprintf("%d %s", rr.Preference, rr.Mx), true
 	case *mdns.NS:
-		if recordType != c.NSRecord {
+		if recordType != config.NSRecord {
 			return "", false
 		}
 		return rr.Ns, true
 	case *mdns.SRV:
-		if recordType != c.SRVRecord {
+		if recordType != config.SRVRecord {
 			return "", false
 		}
 		return fmt.Sprintf("%d %d %d %s", rr.Priority, rr.Weight, rr.Port, rr.Target), true
@@ -234,7 +189,7 @@ func recordValue(record mdns.RR, recordType c.RecordType) (string, bool) {
 	return "", false
 }
 
-func checkAnswers(expect *c.DNSExpect, recordType c.RecordType, actual []string) error {
+func checkAnswers(expect *config.DNSExpect, recordType config.RecordType, actual []string) error {
 	if expect == nil {
 		return nil
 	}
@@ -274,12 +229,12 @@ func checkAnswers(expect *c.DNSExpect, recordType c.RecordType, actual []string)
 	return nil
 }
 
-func normalizeValue(recordType c.RecordType, value string) string {
+func normalizeValue(recordType config.RecordType, value string) string {
 	value = strings.TrimSpace(value)
 
 	//nolint:exhaustive
 	switch recordType {
-	case c.CNAMERecord, c.NSRecord, c.MXRecord, c.SRVRecord:
+	case config.CNAMERecord, config.NSRecord, config.MXRecord, config.SRVRecord:
 		return strings.TrimSuffix(strings.ToLower(value), ".")
 	default:
 		return value

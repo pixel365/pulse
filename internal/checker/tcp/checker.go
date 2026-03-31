@@ -25,5 +25,5 @@ func NewChecker(cfg Alias, executor internal.CheckExecutor) *Checker {
 }
 
 func (c *Checker) Run(ctx context.Context) error {
-	return c.executor.Execute(ctx, c.execute)
+	return c.executor.Execute(ctx, c.request)
 }

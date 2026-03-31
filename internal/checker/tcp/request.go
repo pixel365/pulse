@@ -2,59 +2,14 @@ package tcp
 
 import (
 	"context"
-	"crypto/rand"
 	"errors"
 	"fmt"
 	"io"
 	"net"
 	"strings"
-	"time"
 
-	c "github.com/pixel365/pulse/internal/config"
-	"github.com/pixel365/pulse/internal/model"
+	"github.com/pixel365/pulse/internal/config"
 )
-
-func (c *Checker) execute(ctx context.Context) model.CheckExecutionResult {
-	var err error
-
-	result := model.CheckExecutionResult{
-		ExecutionID: rand.Text(),
-		CheckID:     c.config.ID,
-		ServiceID:   c.config.Service,
-		CheckType:   c.config.Type,
-		Status:      model.Success,
-		StartedAt:   time.Now().UTC(),
-	}
-
-	attempts := c.config.Retries + 1
-	for i := 0; i < attempts; i++ {
-		result.AttemptsTotal = i + 1
-
-		if ctx.Err() != nil {
-			err = ctx.Err()
-			break
-		}
-
-		err = nil
-		reqErr := c.request(ctx)
-		if reqErr != nil {
-			err = reqErr
-			continue
-		}
-		break
-	}
-
-	result.FinishedAt = time.Now().UTC()
-	result.Duration = result.FinishedAt.Sub(result.StartedAt)
-
-	if err != nil {
-		result.Status = model.Failure
-	} else {
-		result.Status = model.Success
-	}
-
-	return result
-}
 
 func (c *Checker) request(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, c.config.Timeout)
@@ -91,7 +46,7 @@ func (c *Checker) request(ctx context.Context) error {
 	return nil
 }
 
-func checkResponse(conn net.Conn, expect *c.StringExpect) error {
+func checkResponse(conn net.Conn, expect *config.StringExpect) error {
 	if expect == nil {
 		return nil
 	}
@@ -107,7 +62,7 @@ func checkResponse(conn net.Conn, expect *c.StringExpect) error {
 	return nil
 }
 
-func checkEquals(conn net.Conn, expect *c.StringExpect) error {
+func checkEquals(conn net.Conn, expect *config.StringExpect) error {
 	body, err := io.ReadAll(conn)
 	if err != nil {
 		return fmt.Errorf("could not read tcp response: %w", err)

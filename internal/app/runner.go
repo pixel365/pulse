@@ -29,11 +29,7 @@ func (a *App) Run(ctx context.Context, cfg *config.Config) error {
 	w := internal.FakeWriter{}
 
 	for i := range cfg.HttpChecks {
-		executor := internal.NewCheckExecutor(
-			w,
-			cfg.HttpChecks[i].Interval,
-			cfg.HttpChecks[i].Jitter,
-		)
+		executor := internal.NewCheckExecutor(w, cfg.HttpChecks[i].CheckFields)
 		checker := http.NewChecker(cfg.HttpChecks[i], executor)
 		g.Go(func() error {
 			return checker.Run(ctx)
@@ -41,7 +37,7 @@ func (a *App) Run(ctx context.Context, cfg *config.Config) error {
 	}
 
 	for i := range cfg.TCPChecks {
-		executor := internal.NewCheckExecutor(w, cfg.TCPChecks[i].Interval, cfg.TCPChecks[i].Jitter)
+		executor := internal.NewCheckExecutor(w, cfg.TCPChecks[i].CheckFields)
 		checker := tcp.NewChecker(cfg.TCPChecks[i], executor)
 		g.Go(func() error {
 			return checker.Run(ctx)
@@ -49,11 +45,7 @@ func (a *App) Run(ctx context.Context, cfg *config.Config) error {
 	}
 
 	for i := range cfg.GRPCChecks {
-		executor := internal.NewCheckExecutor(
-			w,
-			cfg.GRPCChecks[i].Interval,
-			cfg.GRPCChecks[i].Jitter,
-		)
+		executor := internal.NewCheckExecutor(w, cfg.GRPCChecks[i].CheckFields)
 		checker := grpc.NewChecker(cfg.GRPCChecks[i], executor)
 		g.Go(func() error {
 			return checker.Run(ctx)
@@ -61,7 +53,7 @@ func (a *App) Run(ctx context.Context, cfg *config.Config) error {
 	}
 
 	for i := range cfg.DNSChecks {
-		executor := internal.NewCheckExecutor(w, cfg.DNSChecks[i].Interval, cfg.DNSChecks[i].Jitter)
+		executor := internal.NewCheckExecutor(w, cfg.DNSChecks[i].CheckFields)
 		checker := dns.NewChecker(cfg.DNSChecks[i], executor)
 		g.Go(func() error {
 			return checker.Run(ctx)
@@ -69,7 +61,7 @@ func (a *App) Run(ctx context.Context, cfg *config.Config) error {
 	}
 
 	for i := range cfg.TLSChecks {
-		executor := internal.NewCheckExecutor(w, cfg.TLSChecks[i].Interval, cfg.TLSChecks[i].Jitter)
+		executor := internal.NewCheckExecutor(w, cfg.TLSChecks[i].CheckFields)
 		checker := tls.NewChecker(cfg.TLSChecks[i], executor)
 		g.Go(func() error {
 			return checker.Run(ctx)

@@ -3,7 +3,6 @@ package http
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,66 +10,9 @@ import (
 	h "net/http"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/pixel365/pulse/internal/config"
-	"github.com/pixel365/pulse/internal/model"
 )
-
-func (c *Checker) execute(ctx context.Context) model.CheckExecutionResult {
-	var err error
-
-	result := model.CheckExecutionResult{
-		ExecutionID: rand.Text(),
-		CheckID:     c.config.ID,
-		ServiceID:   c.config.Service,
-		CheckType:   c.config.Type,
-		Status:      model.Success,
-		StartedAt:   time.Now().UTC(),
-	}
-
-	attempts := c.config.Retries + 1
-	for i := 0; i < attempts; i++ {
-		result.AttemptsTotal = i + 1
-
-		if ctx.Err() != nil {
-			err = ctx.Err()
-			break
-		}
-
-		err = nil
-		reqErr := c.request(ctx)
-		if reqErr != nil {
-			err = reqErr
-			continue
-		}
-		break
-	}
-
-	result.FinishedAt = time.Now().UTC()
-	result.Duration = result.FinishedAt.Sub(result.StartedAt)
-
-	if err != nil {
-		result.Status = model.Failure
-		switch {
-		case errors.Is(err, context.Canceled),
-			errors.Is(err, context.DeadlineExceeded),
-			errors.Is(err, ErrCtxCancelled),
-			errors.Is(err, ErrTimeout):
-			result.ErrorKind = model.ErrTimeout
-		case errors.Is(err, ErrResponseBody):
-			result.ErrorKind = model.ErrResponseBody
-		case errors.Is(err, ErrCode):
-			result.ErrorKind = model.ErrStatusCode
-		default:
-			result.ErrorKind = model.ErrUnknown
-		}
-	} else {
-		result.Status = model.Success
-	}
-
-	return result
-}
 
 func (c *Checker) request(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, c.config.Timeout)
@@ -171,7 +113,7 @@ func checkCode(statusCode int, codes []int) error {
 	}
 
 	if !success {
-		return fmt.Errorf("%w %d", ErrCode, statusCode)
+		return fmt.Errorf("unsuccess code %d", statusCode)
 	}
 
 	return nil
@@ -193,7 +135,7 @@ func checkBody(expect *config.StringExpect, res io.ReadCloser) error {
 		}
 
 		if !bodyOk {
-			return ErrResponseBody
+			return errors.New("response body does not contain expected value")
 		}
 
 		if equals != "" {
@@ -202,7 +144,7 @@ func checkBody(expect *config.StringExpect, res io.ReadCloser) error {
 	}
 
 	if !bodyOk {
-		return ErrResponseBody
+		return errors.New("response body does not equal expected value")
 	}
 
 	return nil
