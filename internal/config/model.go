@@ -5,6 +5,8 @@ import "time"
 type CheckType string
 type GRPCHealthStatus string
 type RecordType string
+type GRPCHealthService string
+type GRPCHealthMethod string
 
 const (
 	HTTP CheckType = "http"
@@ -25,6 +27,9 @@ const (
 	MXRecord    RecordType = "MX"
 	NSRecord    RecordType = "NS"
 	SRVRecord   RecordType = "SRV"
+
+	HealthService GRPCHealthService = "grpc.health.v1.Health"
+	HealthMethod  GRPCHealthMethod  = "Check"
 )
 
 type StringExpect struct {
@@ -110,8 +115,8 @@ type TCPSpec struct {
 type GRPCSpec struct {
 	Metadata map[string]string  `yaml:"metadata" json:"metadata" validate:"omitempty,min=1"`
 	Host     string             `yaml:"host"     json:"host"     validate:"required,hostname_rfc1123|ip"`
-	Service  string             `yaml:"service"  json:"service"  validate:"required"`
-	Method   string             `yaml:"method"   json:"method"   validate:"required"`
+	Service  GRPCHealthService  `yaml:"service"  json:"service"  validate:"required,oneof=grpc.health.v1.Health"`
+	Method   GRPCHealthMethod   `yaml:"method"   json:"method"   validate:"required,oneof=Check"`
 	Request  *GRPCHealthRequest `yaml:"request"  json:"request"  validate:"omitempty"`
 
 	//nolint:lll,nolintlint
