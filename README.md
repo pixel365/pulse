@@ -18,22 +18,54 @@ In the future, the project is planned to grow toward:
 
 ## Current Status
 
-This project is in a very early stage of development.
+This project is still in an early stage of development.
 
 What exists today:
 
 - configuration loading and validation
 - typed check configuration models
-- basic application/checker scaffolding
-- an initial HTTP checker implementation
+- periodic check execution with retries and jitter
+- HTTP checks
+- TCP checks
+- DNS checks
+- TLS certificate checks
+- gRPC health checks via `grpc.health.v1.Health/Check`
 
 What does not exist yet in a finished form:
 
-- stable runtime behavior
 - persistent state storage
 - finalized status aggregation rules
 - public/internal status page generation
+- production-ready logging and observability
 - stable external interfaces
+
+## Running
+
+The application expects configuration to be provided through `CONFIG_DIR`.
+
+Expected layout:
+
+- `services.yaml`
+- `checks/*.yaml`
+
+Example configuration files are available in:
+
+- `examples/services.yaml`
+- `examples/checks/api-checks.yaml`
+
+Run with:
+
+```bash
+CONFIG_DIR=./examples go run ./cmd/pulse
+```
+
+## Notes
+
+A few implementation details are intentionally narrow at this stage:
+
+- gRPC support currently targets only the standard health check API: `grpc.health.v1.Health/Check`
+- result writing is still backed by a temporary fake writer
+- internal architecture is still evolving
 
 ## Important
 
