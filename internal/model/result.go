@@ -1,7 +1,6 @@
 package model
 
 import (
-	"context"
 	"time"
 
 	"github.com/pixel365/pulse/internal/config"
@@ -13,10 +12,6 @@ const (
 	Success CheckExecutionStatus = "success"
 	Failure CheckExecutionStatus = "failure"
 )
-
-type ResultWriter interface {
-	Write(context.Context, CheckExecutionResult) error
-}
 
 type CheckExecutionResult struct {
 	ExecutionID   string
@@ -30,10 +25,4 @@ type CheckExecutionResult struct {
 	Status        CheckExecutionStatus
 	Duration      time.Duration
 	AttemptsTotal int
-}
-
-type FakeWriter struct{}
-
-func (f FakeWriter) Write(_ context.Context, _ CheckExecutionResult) error {
-	return nil
 }
