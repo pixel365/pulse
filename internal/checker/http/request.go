@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	h "net/http"
@@ -12,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/pixel365/pulse/internal/config"
+	"github.com/pixel365/pulse/internal/e"
 )
 
 func (c *Checker) request(ctx context.Context) error {
@@ -97,7 +97,10 @@ func makeRequest(ctx context.Context, config Alias) (*h.Request, error) {
 		}
 		req = rq
 	default:
-		return nil, fmt.Errorf("unsupported method: %s", config.Spec.Method)
+		return nil, e.NewError(
+			e.ErrInternal,
+			fmt.Sprintf("unsupported method: %s", config.Spec.Method),
+		)
 	}
 
 	return req, nil
@@ -113,7 +116,7 @@ func checkCode(statusCode int, codes []int) error {
 	}
 
 	if !success {
-		return fmt.Errorf("unsuccess code %d", statusCode)
+		return e.NewError(e.ErrProtocol, fmt.Sprintf("unsuccess code %d", statusCode))
 	}
 
 	return nil
@@ -135,7 +138,10 @@ func checkBody(expect *config.StringExpect, res io.ReadCloser) error {
 		}
 
 		if !bodyOk {
-			return errors.New("response body does not contain expected value")
+			return e.NewError(
+				e.ErrConstraint,
+				"response body does not contain expected value",
+			)
 		}
 
 		if equals != "" {
@@ -144,7 +150,7 @@ func checkBody(expect *config.StringExpect, res io.ReadCloser) error {
 	}
 
 	if !bodyOk {
-		return errors.New("response body does not equal expected value")
+		return e.NewError(e.ErrConstraint, "response body does not equal expected value")
 	}
 
 	return nil

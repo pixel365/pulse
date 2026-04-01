@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net"
 	"time"
+
+	"github.com/pixel365/pulse/internal/e"
 )
 
 func (c *Checker) request(ctx context.Context) error {
@@ -33,7 +35,10 @@ func (c *Checker) request(ctx context.Context) error {
 	tlsConn, ok := conn.(*ctls.Conn)
 	if !ok {
 		_ = conn.Close()
-		return fmt.Errorf("unexpected connection type: %T", conn)
+		return e.NewError(
+			e.ErrInternal,
+			fmt.Sprintf("unexpected connection type: %T", conn),
+		)
 	}
 
 	defer func() {
@@ -42,16 +47,19 @@ func (c *Checker) request(ctx context.Context) error {
 
 	state := tlsConn.ConnectionState()
 	if len(state.PeerCertificates) == 0 {
-		return fmt.Errorf("no peer certificates presented")
+		return e.NewError(e.ErrProtocol, "no peer certificates presented")
 	}
 
 	leaf := state.PeerCertificates[0]
 	validityLeft := time.Until(leaf.NotAfter)
 	if validityLeft < c.config.Spec.MinValidity {
-		return fmt.Errorf(
-			"certificate validity %s is below required minimum %s",
-			validityLeft.Truncate(time.Second),
-			c.config.Spec.MinValidity,
+		return e.NewError(
+			e.ErrConstraint,
+			fmt.Sprintf(
+				"certificate validity %s is below required minimum %s",
+				validityLeft.Truncate(time.Second),
+				c.config.Spec.MinValidity,
+			),
 		)
 	}
 

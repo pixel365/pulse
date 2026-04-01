@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/pixel365/pulse/internal/config"
+	"github.com/pixel365/pulse/internal/e"
 )
 
 func (c *Checker) request(ctx context.Context) error {
@@ -70,11 +71,14 @@ func checkEquals(conn net.Conn, expect *config.StringExpect) error {
 
 	response := string(body)
 	if expect.Contains != "" && !strings.Contains(response, expect.Contains) {
-		return fmt.Errorf("tcp response does not contain %q", expect.Contains)
+		return e.NewError(
+			e.ErrConstraint,
+			fmt.Sprintf("tcp response does not contain %q", expect.Contains),
+		)
 	}
 
 	if response != expect.Equals {
-		return fmt.Errorf("tcp response does not equal expected value")
+		return e.NewError(e.ErrConstraint, "tcp response does not equal expected value")
 	}
 
 	return nil
@@ -104,5 +108,8 @@ func checkContains(conn net.Conn, contains string) error {
 		return fmt.Errorf("could not read tcp response: %w", err)
 	}
 
-	return fmt.Errorf("tcp response does not contain %q", contains)
+	return e.NewError(
+		e.ErrConstraint,
+		fmt.Sprintf("tcp response does not contain %q", contains),
+	)
 }

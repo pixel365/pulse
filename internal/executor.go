@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/pixel365/pulse/internal/config"
+	"github.com/pixel365/pulse/internal/e"
 	"github.com/pixel365/pulse/internal/model"
 )
 
@@ -51,12 +52,14 @@ func (c *CheckExec) execute(
 	var err error
 
 	result := model.CheckExecutionResult{
-		ExecutionID: rand.Text(),
-		CheckID:     c.cfg.ID,
-		ServiceID:   c.cfg.Service,
-		CheckType:   c.cfg.Type,
-		Status:      model.Success,
-		StartedAt:   time.Now().UTC(),
+		ExecutionID:  rand.Text(),
+		CheckID:      c.cfg.ID,
+		ServiceID:    c.cfg.Service,
+		CheckType:    c.cfg.Type,
+		Status:       model.Success,
+		StartedAt:    time.Now().UTC(),
+		ErrorKind:    e.ErrNone,
+		ErrorMessage: "",
 	}
 
 	attempts := c.cfg.Retries + 1
@@ -82,8 +85,7 @@ func (c *CheckExec) execute(
 
 	if err != nil {
 		result.Status = model.Failure
-	} else {
-		result.Status = model.Success
+		result.ErrorKind, result.ErrorMessage = e.ResolveError(err)
 	}
 
 	return result

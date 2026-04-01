@@ -9,6 +9,8 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/metadata"
+
+	"github.com/pixel365/pulse/internal/e"
 )
 
 func (c *Checker) request(ctx context.Context) error {
@@ -21,7 +23,10 @@ func (c *Checker) request(ctx context.Context) error {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
-		return fmt.Errorf("could not create grpc client: %w", err)
+		return e.NewError(
+			e.ErrInternal,
+			fmt.Sprintf("could not create grpc client: %v", err),
+		)
 	}
 
 	defer func() {
@@ -46,10 +51,13 @@ func (c *Checker) request(ctx context.Context) error {
 	}
 
 	if got := resp.GetStatus().String(); got != string(c.config.Spec.ExpectedHealthStatus) {
-		return fmt.Errorf(
-			"unexpected grpc health status: expected %s, got %s",
-			c.config.Spec.ExpectedHealthStatus,
-			got,
+		return e.NewError(
+			e.ErrConstraint,
+			fmt.Sprintf(
+				"unexpected grpc health status: expected %s, got %s",
+				c.config.Spec.ExpectedHealthStatus,
+				got,
+			),
 		)
 	}
 

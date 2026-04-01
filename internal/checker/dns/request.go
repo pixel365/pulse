@@ -9,6 +9,8 @@ import (
 
 	mdns "github.com/miekg/dns"
 
+	"github.com/pixel365/pulse/internal/e"
+
 	"github.com/pixel365/pulse/internal/config"
 )
 
@@ -34,11 +36,14 @@ func (c *Checker) request(ctx context.Context) error {
 	}
 
 	if res == nil {
-		return fmt.Errorf("empty dns response")
+		return e.NewError(e.ErrProtocol, "empty dns response")
 	}
 
 	if res.Rcode != mdns.RcodeSuccess {
-		return fmt.Errorf("unexpected dns response code: %s", mdns.RcodeToString[res.Rcode])
+		return e.NewError(
+			e.ErrProtocol,
+			fmt.Sprintf("unexpected dns response code: %s", mdns.RcodeToString[res.Rcode]),
+		)
 	}
 
 	values, err := collectAnswers(res.Answer, c.config.Spec.RecordType)
@@ -47,10 +52,9 @@ func (c *Checker) request(ctx context.Context) error {
 	}
 
 	if len(values) == 0 {
-		return fmt.Errorf(
-			"no %s records found for %s",
-			c.config.Spec.RecordType,
-			c.config.Spec.Name,
+		return e.NewError(
+			e.ErrConstraint,
+			fmt.Sprintf("no %s records found for %s", c.config.Spec.RecordType, c.config.Spec.Name),
 		)
 	}
 
@@ -202,7 +206,10 @@ func checkAnswers(expect *config.DNSExpect, recordType config.RecordType, actual
 	for _, want := range expect.Contains {
 		value := normalizeValue(recordType, want)
 		if _, ok := actualSet[value]; !ok {
-			return fmt.Errorf("expected dns answer to contain %q", want)
+			return e.NewError(
+				e.ErrConstraint,
+				fmt.Sprintf("expected dns answer to contain %q", want),
+			)
 		}
 	}
 
@@ -217,12 +224,18 @@ func checkAnswers(expect *config.DNSExpect, recordType config.RecordType, actual
 
 	expected = uniqueSorted(expected)
 	if len(expected) != len(actual) {
-		return fmt.Errorf("dns answers mismatch: expected %v, got %v", expected, actual)
+		return e.NewError(
+			e.ErrConstraint,
+			fmt.Sprintf("dns answers mismatch: expected %v, got %v", expected, actual),
+		)
 	}
 
 	for i := range expected {
 		if expected[i] != actual[i] {
-			return fmt.Errorf("dns answers mismatch: expected %v, got %v", expected, actual)
+			return e.NewError(
+				e.ErrConstraint,
+				fmt.Sprintf("dns answers mismatch: expected %v, got %v", expected, actual),
+			)
 		}
 	}
 
