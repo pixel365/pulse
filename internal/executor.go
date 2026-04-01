@@ -8,6 +8,7 @@ import (
 	"github.com/pixel365/pulse/internal/config"
 	"github.com/pixel365/pulse/internal/e"
 	"github.com/pixel365/pulse/internal/model"
+	"github.com/pixel365/pulse/internal/services/check"
 )
 
 type CheckExecutor interface {
@@ -17,8 +18,8 @@ type CheckExecutor interface {
 var _ CheckExecutor = (*CheckExec)(nil)
 
 type CheckExec struct {
-	writer ResultWriter
-	cfg    config.CheckFields
+	handler check.CheckHandlerService
+	cfg     config.CheckFields
 }
 
 func (c *CheckExec) Execute(
@@ -37,8 +38,17 @@ func (c *CheckExec) Execute(
 		case <-ticker.C:
 			Sleep(ctx, c.cfg.Jitter)
 			result := c.execute(ctx, request)
+
+			policy := model.CheckPolicy{
+				CheckID:          result.CheckID,
+				ServiceID:        result.ServiceID,
+				CheckType:        result.CheckType,
+				FailureThreshold: c.cfg.FailureThreshold,
+				SuccessThreshold: c.cfg.SuccessThreshold,
+			}
+
 			//nolint:staticcheck
-			if err := c.writer.Write(ctx, result); err != nil {
+			if err := c.handler.Handle(ctx, policy, result); err != nil {
 				//TODO: log
 			}
 		}
@@ -56,7 +66,7 @@ func (c *CheckExec) execute(
 		CheckID:      c.cfg.ID,
 		ServiceID:    c.cfg.Service,
 		CheckType:    c.cfg.Type,
-		Status:       model.Success,
+		Status:       model.CheckExecutionSuccess,
 		StartedAt:    time.Now().UTC(),
 		ErrorKind:    e.ErrNone,
 		ErrorMessage: "",
@@ -84,7 +94,7 @@ func (c *CheckExec) execute(
 	result.Duration = result.FinishedAt.Sub(result.StartedAt)
 
 	if err != nil {
-		result.Status = model.Failure
+		result.Status = model.CheckExecutionFailure
 		result.ErrorKind, result.ErrorMessage = e.ResolveError(err)
 	}
 
@@ -92,11 +102,11 @@ func (c *CheckExec) execute(
 }
 
 func NewCheckExecutor(
-	w ResultWriter,
+	handler check.CheckHandlerService,
 	cfg config.CheckFields,
 ) *CheckExec {
 	return &CheckExec{
-		writer: w,
-		cfg:    cfg,
+		handler: handler,
+		cfg:     cfg,
 	}
 }

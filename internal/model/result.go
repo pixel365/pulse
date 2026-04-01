@@ -8,10 +8,21 @@ import (
 )
 
 type CheckExecutionStatus string
+type CheckStateStatus string
+type ServiceStateStatus string
 
 const (
-	Success CheckExecutionStatus = "success"
-	Failure CheckExecutionStatus = "failure"
+	CheckExecutionSuccess CheckExecutionStatus = "success"
+	CheckExecutionFailure CheckExecutionStatus = "failure"
+
+	CheckStateUnknown   CheckStateStatus = "unknown"
+	CheckStateHealthy   CheckStateStatus = "healthy"
+	CheckStateUnhealthy CheckStateStatus = "unhealthy"
+
+	ServiceStateUnknown   ServiceStateStatus = "unknown"
+	ServiceStateHealthy   ServiceStateStatus = "healthy"
+	ServiceStateUnhealthy ServiceStateStatus = "unhealthy"
+	ServiceStateDegraded  ServiceStateStatus = "degraded"
 )
 
 type CheckExecutionResult struct {
@@ -27,4 +38,30 @@ type CheckExecutionResult struct {
 	ErrorMessage  string
 	Duration      time.Duration
 	AttemptsTotal int
+}
+
+type CheckState struct {
+	UpdatedAt            time.Time
+	LastFailureAt        *time.Time
+	LastSuccessAt        *time.Time
+	LastDetails          map[string]any
+	LastStatus           CheckExecutionStatus
+	LastExecutionID      string
+	CheckID              string
+	LastErrorKind        e.ErrorKind
+	LastErrorMessage     string
+	Status               CheckStateStatus
+	CheckType            config.CheckType
+	ServiceID            string
+	LastDuration         time.Duration
+	ConsecutiveSuccesses int
+	ConsecutiveFailures  int
+}
+
+type CheckPolicy struct {
+	CheckID          string
+	ServiceID        string
+	CheckType        config.CheckType
+	FailureThreshold int
+	SuccessThreshold int
 }

@@ -5,6 +5,8 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
+	checksvc "github.com/pixel365/pulse/internal/services/check"
+
 	"github.com/pixel365/pulse/internal"
 
 	"github.com/pixel365/pulse/internal/checker/dns"
@@ -18,20 +20,22 @@ import (
 var _ internal.Runner = (*App)(nil)
 
 type App struct {
-	cfg *config.Config
+	cfg             *config.Config
+	checkHandlerSvc checksvc.CheckHandlerService
 }
 
-func NewApp(cfg *config.Config) *App {
-	return &App{cfg}
+func NewApp(cfg *config.Config, checkSvc checksvc.CheckHandlerService) *App {
+	return &App{
+		cfg:             cfg,
+		checkHandlerSvc: checkSvc,
+	}
 }
 
 func (a *App) Run(ctx context.Context) error {
 	g, ctx := errgroup.WithContext(ctx)
 
-	w := internal.FakeWriter{}
-
 	for i := range a.cfg.HttpChecks {
-		executor := internal.NewCheckExecutor(w, a.cfg.HttpChecks[i].CheckFields)
+		executor := internal.NewCheckExecutor(a.checkHandlerSvc, a.cfg.HttpChecks[i].CheckFields)
 		checker := http.NewChecker(a.cfg.HttpChecks[i], executor)
 		g.Go(func() error {
 			return checker.Check(ctx)
@@ -39,7 +43,7 @@ func (a *App) Run(ctx context.Context) error {
 	}
 
 	for i := range a.cfg.TCPChecks {
-		executor := internal.NewCheckExecutor(w, a.cfg.TCPChecks[i].CheckFields)
+		executor := internal.NewCheckExecutor(a.checkHandlerSvc, a.cfg.TCPChecks[i].CheckFields)
 		checker := tcp.NewChecker(a.cfg.TCPChecks[i], executor)
 		g.Go(func() error {
 			return checker.Check(ctx)
@@ -47,7 +51,7 @@ func (a *App) Run(ctx context.Context) error {
 	}
 
 	for i := range a.cfg.GRPCChecks {
-		executor := internal.NewCheckExecutor(w, a.cfg.GRPCChecks[i].CheckFields)
+		executor := internal.NewCheckExecutor(a.checkHandlerSvc, a.cfg.GRPCChecks[i].CheckFields)
 		checker := grpc.NewChecker(a.cfg.GRPCChecks[i], executor)
 		g.Go(func() error {
 			return checker.Check(ctx)
@@ -55,7 +59,7 @@ func (a *App) Run(ctx context.Context) error {
 	}
 
 	for i := range a.cfg.DNSChecks {
-		executor := internal.NewCheckExecutor(w, a.cfg.DNSChecks[i].CheckFields)
+		executor := internal.NewCheckExecutor(a.checkHandlerSvc, a.cfg.DNSChecks[i].CheckFields)
 		checker := dns.NewChecker(a.cfg.DNSChecks[i], executor)
 		g.Go(func() error {
 			return checker.Check(ctx)
@@ -63,7 +67,7 @@ func (a *App) Run(ctx context.Context) error {
 	}
 
 	for i := range a.cfg.TLSChecks {
-		executor := internal.NewCheckExecutor(w, a.cfg.TLSChecks[i].CheckFields)
+		executor := internal.NewCheckExecutor(a.checkHandlerSvc, a.cfg.TLSChecks[i].CheckFields)
 		checker := tls.NewChecker(a.cfg.TLSChecks[i], executor)
 		g.Go(func() error {
 			return checker.Check(ctx)

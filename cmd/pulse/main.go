@@ -9,6 +9,9 @@ import (
 
 	"github.com/joho/godotenv"
 
+	checkrepo "github.com/pixel365/pulse/internal/repository/check"
+	checksvc "github.com/pixel365/pulse/internal/services/check"
+
 	"github.com/pixel365/pulse/internal/app"
 
 	"github.com/pixel365/pulse/internal/config"
@@ -24,7 +27,11 @@ func main() {
 
 	cfg := config.MustLoad()
 
-	runner := app.NewApp(cfg)
+	repo := checkrepo.NewStateRepository()
+	stateSvc := checksvc.NewStateService(repo)
+	checkHandlerSvc := checksvc.NewHandlerService(stateSvc)
+
+	runner := app.NewApp(cfg, checkHandlerSvc)
 	if err := runner.Run(ctx); err != nil {
 		stop()
 		log.Fatalf("app run error: %v", err)
