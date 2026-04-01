@@ -7,6 +7,7 @@ import (
 
 	"github.com/pixel365/pulse/internal/config"
 	"github.com/pixel365/pulse/internal/e"
+	"github.com/pixel365/pulse/internal/logger"
 	"github.com/pixel365/pulse/internal/model"
 	"github.com/pixel365/pulse/internal/services/check"
 )
@@ -19,6 +20,7 @@ var _ CheckExecutor = (*CheckExec)(nil)
 
 type CheckExec struct {
 	handler check.CheckHandlerService
+	logger  logger.Logger
 	cfg     config.CheckFields
 }
 
@@ -47,9 +49,8 @@ func (c *CheckExec) Execute(
 				SuccessThreshold: c.cfg.SuccessThreshold,
 			}
 
-			//nolint:staticcheck
 			if err := c.handler.Handle(ctx, policy, result); err != nil {
-				//TODO: log
+				c.logger.Error(ctx, "failed to handle check result", "error", err)
 			}
 		}
 	}
@@ -104,9 +105,11 @@ func (c *CheckExec) execute(
 func NewCheckExecutor(
 	handler check.CheckHandlerService,
 	cfg config.CheckFields,
+	logger logger.Logger,
 ) *CheckExec {
 	return &CheckExec{
 		handler: handler,
 		cfg:     cfg,
+		logger:  logger,
 	}
 }
