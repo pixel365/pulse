@@ -4,11 +4,13 @@ import (
 	"context"
 
 	"github.com/pixel365/pulse/internal/model"
+	"github.com/pixel365/pulse/internal/repository"
 )
 
 var _ CheckStateRepository = (*StateCheck)(nil)
 
 type StateCheck struct {
+	db repository.QueryExecutor
 }
 
 func (s *StateCheck) GetCheckState(ctx context.Context, service string) (*model.CheckState, error) {
@@ -19,6 +21,6 @@ func (s *StateCheck) UpdateCheckState(ctx context.Context, state model.CheckStat
 	return nil
 }
 
-func NewStateRepository() *StateCheck {
-	return &StateCheck{}
+func NewStateRepository(db repository.QueryExecutor) *StateCheck {
+	return &StateCheck{db}
 }

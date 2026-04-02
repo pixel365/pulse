@@ -8,6 +8,8 @@ import (
 
 	"github.com/joho/godotenv"
 
+	"github.com/pixel365/pulse/internal/db/postgres"
+
 	"github.com/pixel365/pulse/internal/logger"
 
 	checkrepo "github.com/pixel365/pulse/internal/repository/check"
@@ -26,9 +28,19 @@ func main() {
 
 	cfg := config.MustLoad()
 	log := logger.NewSlog()
-	repo := checkrepo.NewStateRepository()
-	stateSvc := checksvc.NewStateService(repo)
-	checkHandlerSvc := checksvc.NewHandlerService(stateSvc)
+
+	pgConfig := postgres.NewConfigFromEnv()
+	pgPool, err := postgres.NewPool(ctx, pgConfig)
+	if err != nil {
+		log.Error(ctx, "postgres pool error", "error", err)
+		return
+	}
+	defer pgPool.Close()
+
+	staterepo := checkrepo.NewStateRepository(pgPool)
+	execRepo := checkrepo.NewExecutionRepository(pgPool)
+	stateSvc := checksvc.NewStateService(staterepo)
+	checkHandlerSvc := checksvc.NewHandlerService(stateSvc, execRepo)
 
 	runner := app.NewApp(cfg, log, checkHandlerSvc)
 	if err := runner.Run(ctx); err != nil {

@@ -4,14 +4,11 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-
-	"github.com/pixel365/pulse/internal/logger"
 )
 
 type ConfigOption func(*Config)
 
 type Config struct {
-	Log      logger.Logger
 	User     string
 	Password string
 	Host     string

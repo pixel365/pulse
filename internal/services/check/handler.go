@@ -4,12 +4,14 @@ import (
 	"context"
 
 	"github.com/pixel365/pulse/internal/model"
+	"github.com/pixel365/pulse/internal/repository/check"
 )
 
 var _ CheckHandlerService = (*Handler)(nil)
 
 type Handler struct {
-	svc CheckStateService
+	repo check.CheckExecutionRepository
+	svc  CheckStateService
 }
 
 func (h *Handler) Handle(
@@ -17,11 +19,12 @@ func (h *Handler) Handle(
 	policy model.CheckPolicy,
 	result model.CheckExecutionResult,
 ) error {
-	return nil
+	return h.repo.Add(ctx, result)
 }
 
-func NewHandlerService(svc CheckStateService) *Handler {
+func NewHandlerService(svc CheckStateService, repo check.CheckExecutionRepository) *Handler {
 	return &Handler{
-		svc: svc,
+		svc:  svc,
+		repo: repo,
 	}
 }

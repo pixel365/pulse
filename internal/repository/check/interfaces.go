@@ -10,3 +10,7 @@ type CheckStateRepository interface {
 	GetCheckState(context.Context, string) (*model.CheckState, error)
 	UpdateCheckState(context.Context, model.CheckState) error
 }
+
+type CheckExecutionRepository interface {
+	Add(context.Context, model.CheckExecutionResult) error
+}
