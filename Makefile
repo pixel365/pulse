@@ -1,4 +1,6 @@
-.PHONY: all tidy fa fmt lint vet test
+.PHONY: all tidy fa fmt lint vet test pulse migrate
+
+SERVICES = pulse migrate
 
 all: tidy fa fmt lint
 
@@ -21,3 +23,14 @@ vet:
 
 test:
 	@go test ./...
+
+up:
+	@docker-compose -p pulse -f docker-compose.dev.yaml up -d
+
+down:
+	@docker-compose -p pulse -f docker-compose.dev.yaml down
+
+$(SERVICES):
+	@go build -ldflags "-s -w" -o ./build/$@ ./cmd/$@
+
+build: $(SERVICES)

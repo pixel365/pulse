@@ -1,0 +1,17 @@
+services:
+  postgres:
+    image: postgres:18.3
+    container_name: postgres
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    restart: on-failure
+    volumes:
+      - "${POSTGRES_DATA_PATH:-./data/postgres}:/var/lib/postgresql"
+    env_file:
+      - .env
+    networks:
+      - pulse_network
+
+networks:
+  pulse_network:
+    name: pulse_network

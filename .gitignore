@@ -9,6 +9,7 @@ data/
 *.txt
 *.xml
 .env
+*.env
 *.cnf
 *.crt
 *.key

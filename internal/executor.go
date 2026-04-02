@@ -2,8 +2,9 @@ package internal
 
 import (
 	"context"
-	"crypto/rand"
 	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/pixel365/pulse/internal/config"
 	"github.com/pixel365/pulse/internal/e"
@@ -63,7 +64,7 @@ func (c *CheckExec) execute(
 	var err error
 
 	result := model.CheckExecutionResult{
-		ExecutionID:  rand.Text(),
+		ExecutionID:  uuid.NewString(),
 		CheckID:      c.cfg.ID,
 		ServiceID:    c.cfg.Service,
 		CheckType:    c.cfg.Type,
