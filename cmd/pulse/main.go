@@ -12,7 +12,6 @@ import (
 
 	"github.com/pixel365/pulse/internal/logger"
 
-	checkrepo "github.com/pixel365/pulse/internal/repository/check"
 	checksvc "github.com/pixel365/pulse/internal/services/check"
 
 	"github.com/pixel365/pulse/internal/app"
@@ -37,10 +36,7 @@ func main() {
 	}
 	defer pgPool.Close()
 
-	staterepo := checkrepo.NewStateRepository(pgPool)
-	execRepo := checkrepo.NewExecutionRepository(pgPool)
-	stateSvc := checksvc.NewStateService(staterepo)
-	checkHandlerSvc := checksvc.NewHandlerService(stateSvc, execRepo)
+	checkHandlerSvc := checksvc.NewHandlerService(pgPool)
 
 	runner := app.NewApp(cfg, log, checkHandlerSvc)
 	if err := runner.Run(ctx); err != nil {

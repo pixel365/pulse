@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS pulse.check_executions
     check_type     pulse.check_type                                 NOT NULL,
     started_at     TIMESTAMPTZ                                      NOT NULL,
     finished_at    TIMESTAMPTZ                                      NOT NULL,
-    duration       INTERVAL                                         NOT NULL,
+    duration       BIGINT                                           NOT NULL,
     attempts_total INTEGER                DEFAULT 1                 NOT NULL,
     error_kind     pulse.check_error_kind DEFAULT NULL,
     error_message  TEXT                   DEFAULT NULL,

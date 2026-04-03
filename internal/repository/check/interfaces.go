@@ -7,8 +7,8 @@ import (
 )
 
 type CheckStateRepository interface {
-	GetCheckState(context.Context, string) (*model.CheckState, error)
-	UpdateCheckState(context.Context, model.CheckState) error
+	GetCheckState(context.Context, string, string) (*model.CheckState, error)
+	UpsertCheckState(context.Context, *model.CheckState) error
 }
 
 type CheckExecutionRepository interface {

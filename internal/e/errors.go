@@ -8,6 +8,10 @@ import (
 
 type ErrorKind string
 
+func (e ErrorKind) String() string {
+	return string(e)
+}
+
 const (
 	// ErrNone means the execution completed without an error.
 	ErrNone ErrorKind = ""
@@ -29,6 +33,10 @@ const (
 
 	// ErrUnknown is a fallback for errors that were not classified more precisely.
 	ErrUnknown ErrorKind = "unknown"
+)
+
+var (
+	ErrNotFound = errors.New("not found")
 )
 
 type KindError struct {

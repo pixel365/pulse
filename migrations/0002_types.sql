@@ -1,6 +1,8 @@
 -- +goose Up
 CREATE TYPE pulse.check_status AS ENUM ('success', 'failure');
 
+CREATE TYPE pulse.check_state_status AS ENUM ('unknown', 'healthy', 'unhealthy');
+
 CREATE TYPE pulse.check_type AS ENUM (
     'http',
     'tcp',
@@ -21,4 +23,5 @@ CREATE TYPE pulse.check_error_kind AS ENUM (
 -- +goose Down
 DROP TYPE IF EXISTS pulse.check_error_kind;
 DROP TYPE IF EXISTS pulse.check_type;
+DROP TYPE IF EXISTS pulse.check_state_status;
 DROP TYPE IF EXISTS pulse.check_status;

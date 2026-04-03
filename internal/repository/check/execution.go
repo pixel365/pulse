@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/pixel365/pulse/internal/repository"
+
 	e2 "github.com/pixel365/pulse/internal/e"
 	"github.com/pixel365/pulse/internal/model"
-	"github.com/pixel365/pulse/internal/repository"
 )
 
 var _ CheckExecutionRepository = (*ExecutionCheck)(nil)
@@ -57,7 +58,7 @@ INSERT INTO pulse.check_executions (
 		result.CheckType,
 		result.StartedAt,
 		result.FinishedAt,
-		result.Duration,
+		result.Duration.Microseconds(),
 		result.AttemptsTotal,
 		&errKind,
 		result.ErrorMessage,
