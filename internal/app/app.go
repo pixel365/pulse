@@ -27,7 +27,11 @@ type App struct {
 	logger          logger.Logger
 }
 
-func NewApp(cfg *config.Config, logger logger.Logger, checkSvc checksvc.CheckHandlerService) *App {
+func NewApp(
+	cfg *config.Config,
+	logger logger.Logger,
+	checkSvc checksvc.CheckHandlerService,
+) *App {
 	return &App{
 		cfg:             cfg,
 		checkHandlerSvc: checkSvc,

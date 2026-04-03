@@ -142,9 +142,9 @@ ON CONFLICT (check_id, service_id) DO UPDATE SET
 `
 
 	var (
-		details      []byte
-		errorKind    *string
-		errorMessage *string
+		rawDetails      []byte
+		rawErrorKind    *string
+		rawErrorMessage *string
 	)
 
 	if state.LastDetails != nil {
@@ -152,16 +152,15 @@ ON CONFLICT (check_id, service_id) DO UPDATE SET
 		if err != nil {
 			return err
 		}
-		details = data
+		rawDetails = data
 	}
 
 	if state.LastErrorKind != e.ErrNone {
-		value := string(state.LastErrorKind)
-		errorKind = &value
+		rawErrorKind = new(string(state.LastErrorKind))
 	}
 
 	if state.LastErrorMessage != "" {
-		errorMessage = &state.LastErrorMessage
+		rawErrorMessage = &state.LastErrorMessage
 	}
 
 	_, err := s.db.Exec(ctx, query,
@@ -171,10 +170,10 @@ ON CONFLICT (check_id, service_id) DO UPDATE SET
 		state.Status,
 		state.LastExecutionID,
 		state.LastStatus,
-		errorKind,
-		errorMessage,
+		rawErrorKind,
+		rawErrorMessage,
 		state.LastDuration.Microseconds(),
-		details,
+		rawDetails,
 		state.LastSuccessAt,
 		state.LastFailureAt,
 		state.ConsecutiveSuccesses,
@@ -183,6 +182,92 @@ ON CONFLICT (check_id, service_id) DO UPDATE SET
 	)
 
 	return err
+}
+
+func (s *StateCheck) ListCheckStatesByService(
+	ctx context.Context,
+	serviceID string,
+) ([]model.CheckState, error) {
+	query := `
+SELECT 
+    check_id,
+    check_type,
+    status,
+    last_execution_id,
+    last_status,
+    last_error_kind,
+    last_error_message,
+    last_duration,
+    last_details,
+    last_success_at,
+    last_failure_at,
+    consecutive_successes,
+    consecutive_failures,
+    updated_at
+FROM pulse.check_states
+WHERE service_id = $1
+ORDER BY check_id
+`
+
+	var result []model.CheckState
+	rows, err := s.db.Query(ctx, query, serviceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var (
+			rawDetails      []byte
+			rawErrorKind    *string
+			rawErrorMessage *string
+			rawDurationUs   int64
+		)
+		state := model.CheckState{ServiceID: serviceID}
+		err = rows.Scan(
+			&state.CheckID,
+			&state.CheckType,
+			&state.Status,
+			&state.LastExecutionID,
+			&state.LastStatus,
+			&rawErrorKind,
+			&rawErrorMessage,
+			&rawDurationUs,
+			&rawDetails,
+			&state.LastSuccessAt,
+			&state.LastFailureAt,
+			&state.ConsecutiveSuccesses,
+			&state.ConsecutiveFailures,
+			&state.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		if rawErrorKind != nil {
+			state.LastErrorKind = e.ErrorKind(*rawErrorKind)
+		}
+
+		if rawErrorMessage != nil {
+			state.LastErrorMessage = *rawErrorMessage
+		}
+
+		if rawDetails != nil {
+			if err = json.Unmarshal(rawDetails, &state.LastDetails); err != nil {
+				return nil, err
+			}
+		}
+
+		state.LastDuration = time.Duration(rawDurationUs) * time.Microsecond
+
+		result = append(result, state)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 func NewStateRepository(db repository.QueryExecutor) *StateCheck {
