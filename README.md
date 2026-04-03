@@ -30,11 +30,14 @@ What exists today:
 - DNS checks
 - TLS certificate checks
 - gRPC health checks via `grpc.health.v1.Health/Check`
+- PostgreSQL-backed raw check execution storage
+- persisted current check state
+- migration CLI via `cmd/migrate`
 
 What does not exist yet in a finished form:
 
-- persistent state storage
-- finalized status aggregation rules
+- finalized service-level aggregation
+- query/read API for current and historical state
 - public/internal status page generation
 - production-ready logging and observability
 - stable external interfaces
@@ -42,6 +45,7 @@ What does not exist yet in a finished form:
 ## Running
 
 The application expects configuration to be provided through `CONFIG_DIR`.
+PostgreSQL is also required for execution and state storage.
 
 Expected layout:
 
@@ -52,6 +56,12 @@ Example configuration files are available in:
 
 - `examples/services.yaml`
 - `examples/checks/api-checks.yaml`
+
+Before starting the app, apply migrations:
+
+```bash
+go run ./cmd/migrate up
+```
 
 Run with:
 
@@ -64,7 +74,7 @@ CONFIG_DIR=./examples go run ./cmd/pulse
 A few implementation details are intentionally narrow at this stage:
 
 - gRPC support currently targets only the standard health check API: `grpc.health.v1.Health/Check`
-- result writing is still backed by a temporary fake writer
+- raw execution history and current check state are stored in PostgreSQL
 - internal architecture is still evolving
 
 ## Important
