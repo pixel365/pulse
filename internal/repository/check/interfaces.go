@@ -14,4 +14,8 @@ type CheckStateRepository interface {
 
 type CheckExecutionRepository interface {
 	Add(context.Context, model.CheckExecutionResult) error
+	ListExecutions(
+		context.Context,
+		model.CheckExecutionFilter,
+	) ([]model.CheckExecutionRecord, error)
 }
