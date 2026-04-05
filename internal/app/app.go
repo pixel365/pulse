@@ -43,6 +43,10 @@ func (a *App) Run(ctx context.Context) error {
 	g, ctx := errgroup.WithContext(ctx)
 
 	for i := range a.cfg.HttpChecks {
+		if !a.cfg.HttpChecks[i].Enabled {
+			continue
+		}
+
 		executor := internal.NewCheckExecutor(
 			a.checkHandlerSvc,
 			a.cfg.HttpChecks[i].CheckFields,
@@ -55,6 +59,10 @@ func (a *App) Run(ctx context.Context) error {
 	}
 
 	for i := range a.cfg.TCPChecks {
+		if !a.cfg.TCPChecks[i].Enabled {
+			continue
+		}
+
 		executor := internal.NewCheckExecutor(
 			a.checkHandlerSvc,
 			a.cfg.TCPChecks[i].CheckFields,
@@ -67,6 +75,10 @@ func (a *App) Run(ctx context.Context) error {
 	}
 
 	for i := range a.cfg.GRPCChecks {
+		if !a.cfg.GRPCChecks[i].Enabled {
+			continue
+		}
+
 		executor := internal.NewCheckExecutor(
 			a.checkHandlerSvc,
 			a.cfg.GRPCChecks[i].CheckFields,
@@ -79,6 +91,10 @@ func (a *App) Run(ctx context.Context) error {
 	}
 
 	for i := range a.cfg.DNSChecks {
+		if !a.cfg.DNSChecks[i].Enabled {
+			continue
+		}
+
 		executor := internal.NewCheckExecutor(
 			a.checkHandlerSvc,
 			a.cfg.DNSChecks[i].CheckFields,
@@ -91,6 +107,10 @@ func (a *App) Run(ctx context.Context) error {
 	}
 
 	for i := range a.cfg.TLSChecks {
+		if !a.cfg.TLSChecks[i].Enabled {
+			continue
+		}
+
 		executor := internal.NewCheckExecutor(
 			a.checkHandlerSvc,
 			a.cfg.TLSChecks[i].CheckFields,
