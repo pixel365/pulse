@@ -3,6 +3,7 @@ package check
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/pixel365/pulse/internal/repository"
@@ -156,6 +157,69 @@ FROM pulse.check_executions
 	return result, nil
 }
 
+func (e *ExecutionCheck) ListExecutionBuckets(
+	ctx context.Context,
+	filter model.CheckExecutionAggregateFilter,
+) ([]model.CheckExecutionBucketRecord, error) {
+	bucketExpr, err := executionBucketExpr(filter.Bucket)
+	if err != nil {
+		return nil, err
+	}
+
+	query := fmt.Sprintf(`
+SELECT
+    %s AS bucket_start,
+    COUNT(1) AS total,
+    COUNT(1) FILTER (WHERE status = 'success') AS success_count,
+    COUNT(1) FILTER (WHERE status = 'failure') AS failure_count,
+    AVG(duration)::bigint AS avg_duration_us
+FROM pulse.check_executions
+`, bucketExpr)
+
+	conditions, args := filter.ApplyConditions(mustField)
+	if len(conditions) > 0 {
+		query += "WHERE " + conditions[0]
+		for i := 1; i < len(conditions); i++ {
+			query += " AND " + conditions[i]
+		}
+		query += "\n"
+	}
+
+	query += "GROUP BY bucket_start\n"
+	query += "ORDER BY bucket_start\n"
+
+	rows, err := e.db.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []model.CheckExecutionBucketRecord
+
+	for rows.Next() {
+		var row model.CheckExecutionBucketRecord
+
+		err = rows.Scan(
+			&row.BucketStart,
+			&row.Total,
+			&row.SuccessCount,
+			&row.FailureCount,
+			&row.AvgDurationUs,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, row)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
 func mustField(name string) string {
 	switch name {
 	case "service_id", "check_id", "finished_at":
@@ -163,6 +227,21 @@ func mustField(name string) string {
 	}
 
 	panic("unknown field " + name + " in check execution filter")
+}
+
+func executionBucketExpr(bucket model.CheckExecutionBucket) (string, error) {
+	switch bucket {
+	case model.CheckExecutionBucketSecond:
+		return "date_trunc('second', finished_at)", nil
+	case "", model.CheckExecutionBucketMinute:
+		return "date_trunc('minute', finished_at)", nil
+	case model.CheckExecutionBucketHour:
+		return "date_trunc('hour', finished_at)", nil
+	case model.CheckExecutionBucketDay:
+		return "date_trunc('day', finished_at)", nil
+	default:
+		return "", fmt.Errorf("unsupported execution bucket %q", bucket)
+	}
 }
 
 func NewExecutionRepository(db repository.QueryExecutor) *ExecutionCheck {

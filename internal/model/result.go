@@ -11,6 +11,7 @@ import (
 type CheckExecutionStatus string
 type CheckStateStatus string
 type ServiceStateStatus string
+type CheckExecutionBucket string
 
 const (
 	CheckExecutionSuccess CheckExecutionStatus = "success"
@@ -24,6 +25,11 @@ const (
 	ServiceStateHealthy   ServiceStateStatus = "healthy"
 	ServiceStateUnhealthy ServiceStateStatus = "unhealthy"
 	ServiceStateDegraded  ServiceStateStatus = "degraded"
+
+	CheckExecutionBucketSecond CheckExecutionBucket = "second"
+	CheckExecutionBucketMinute CheckExecutionBucket = "minute"
+	CheckExecutionBucketHour   CheckExecutionBucket = "hour"
+	CheckExecutionBucketDay    CheckExecutionBucket = "day"
 )
 
 type CheckExecutionResult struct {
@@ -81,7 +87,20 @@ type CheckExecutionFilter struct {
 	Limit     int
 }
 
-func (f *CheckExecutionFilter) Apply(query string, fieldFn func(string) string) (string, []any) {
+type CheckExecutionAggregateFilter struct {
+	Bucket CheckExecutionBucket
+	CheckExecutionFilter
+}
+
+type CheckExecutionBucketRecord struct {
+	BucketStart   time.Time
+	Total         int
+	SuccessCount  int
+	FailureCount  int
+	AvgDurationUs int64
+}
+
+func (f *CheckExecutionFilter) ApplyConditions(fieldFn func(string) string) ([]string, []any) {
 	var (
 		conditions []string
 		args       []any
@@ -99,13 +118,25 @@ func (f *CheckExecutionFilter) Apply(query string, fieldFn func(string) string) 
 
 	if f.From != nil {
 		args = append(args, *f.From)
-		conditions = append(conditions, fmt.Sprintf("%s >= $%d", fieldFn("finished_at"), len(args)))
+		conditions = append(
+			conditions,
+			fmt.Sprintf("%s >= TIMESTAMPTZ $%d", fieldFn("finished_at"), len(args)),
+		)
 	}
 
 	if f.To != nil {
 		args = append(args, *f.To)
-		conditions = append(conditions, fmt.Sprintf("%s <= $%d", fieldFn("finished_at"), len(args)))
+		conditions = append(
+			conditions,
+			fmt.Sprintf("%s <= TIMESTAMPTZ $%d", fieldFn("finished_at"), len(args)),
+		)
 	}
+
+	return conditions, args
+}
+
+func (f *CheckExecutionFilter) Apply(query string, fieldFn func(string) string) (string, []any) {
+	conditions, args := f.ApplyConditions(fieldFn)
 
 	if len(conditions) > 0 {
 		query += "WHERE " + conditions[0]
