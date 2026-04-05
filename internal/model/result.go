@@ -100,6 +100,23 @@ type CheckExecutionBucketRecord struct {
 	AvgDurationUs int64
 }
 
+type CheckExecutionTimelineFilter struct {
+	From      time.Time
+	To        time.Time
+	ServiceID string
+	CheckID   string
+	Bucket    CheckExecutionBucket
+	Interval  time.Duration
+}
+
+type CheckExecutionTimelineRecord struct {
+	BucketStart         time.Time
+	BucketEnd           time.Time
+	LastObservedAt      *time.Time
+	LastExecutionStatus *CheckExecutionStatus
+	State               CheckStateStatus
+}
+
 func (f *CheckExecutionFilter) ApplyConditions(fieldFn func(string) string) ([]string, []any) {
 	var (
 		conditions []string
@@ -118,18 +135,12 @@ func (f *CheckExecutionFilter) ApplyConditions(fieldFn func(string) string) ([]s
 
 	if f.From != nil {
 		args = append(args, *f.From)
-		conditions = append(
-			conditions,
-			fmt.Sprintf("%s >= TIMESTAMPTZ $%d", fieldFn("finished_at"), len(args)),
-		)
+		conditions = append(conditions, fmt.Sprintf("%s >= $%d", fieldFn("finished_at"), len(args)))
 	}
 
 	if f.To != nil {
 		args = append(args, *f.To)
-		conditions = append(
-			conditions,
-			fmt.Sprintf("%s <= TIMESTAMPTZ $%d", fieldFn("finished_at"), len(args)),
-		)
+		conditions = append(conditions, fmt.Sprintf("%s <= $%d", fieldFn("finished_at"), len(args)))
 	}
 
 	return conditions, args
@@ -154,4 +165,32 @@ func (f *CheckExecutionFilter) Apply(query string, fieldFn func(string) string) 
 	}
 
 	return query, args
+}
+
+func (f *CheckExecutionTimelineFilter) Validate() error {
+	if f.ServiceID == "" {
+		return fmt.Errorf("service_id is required")
+	}
+
+	if f.CheckID == "" {
+		return fmt.Errorf("check_id is required")
+	}
+
+	if f.From.IsZero() {
+		return fmt.Errorf("from is required")
+	}
+
+	if f.To.IsZero() {
+		return fmt.Errorf("to is required")
+	}
+
+	if !f.To.After(f.From) {
+		return fmt.Errorf("to must be after from")
+	}
+
+	if f.Interval <= 0 {
+		return fmt.Errorf("interval must be greater than zero")
+	}
+
+	return nil
 }

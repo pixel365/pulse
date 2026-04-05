@@ -220,6 +220,129 @@ FROM pulse.check_executions
 	return result, nil
 }
 
+func (e *ExecutionCheck) ListExecutionTimeline(
+	ctx context.Context,
+	filter model.CheckExecutionTimelineFilter,
+) ([]model.CheckExecutionTimelineRecord, error) {
+	if err := filter.Validate(); err != nil {
+		return nil, err
+	}
+
+	bucketStepUs, err := executionBucketStepMicros(filter.Bucket)
+	if err != nil {
+		return nil, err
+	}
+	staleAfterUs := 2 * filter.Interval.Microseconds()
+
+	query := `
+WITH params AS (
+    SELECT
+        $1::text AS service_id,
+        $2::text AS check_id,
+        $3::timestamptz AS from_ts,
+        $4::timestamptz AS to_ts,
+        $5::bigint AS bucket_step_us,
+        $6::bigint AS stale_after_us
+),
+buckets AS (
+    SELECT
+        gs AS bucket_start,
+        gs + (p.bucket_step_us * interval '1 microsecond') AS bucket_end
+    FROM params p,
+    LATERAL generate_series(
+        p.from_ts,
+        p.to_ts,
+        p.bucket_step_us * interval '1 microsecond'
+    ) AS gs
+),
+last_execution_per_bucket AS (
+    SELECT
+        b.bucket_start,
+        b.bucket_end,
+        e.finished_at AS last_observed_at,
+        e.status AS last_execution_status
+    FROM buckets b
+    CROSS JOIN params p
+    LEFT JOIN LATERAL (
+        SELECT
+            ce.finished_at,
+            ce.status
+        FROM pulse.check_executions ce
+        WHERE ce.service_id = p.service_id
+          AND ce.check_id = p.check_id
+          AND ce.finished_at <= b.bucket_end
+        ORDER BY ce.finished_at DESC
+        LIMIT 1
+    ) e ON TRUE
+)
+SELECT
+    bucket_start,
+    bucket_end,
+    last_observed_at,
+    last_execution_status,
+    CASE
+        WHEN last_observed_at IS NULL THEN 'unknown'::pulse.check_state_status
+        WHEN bucket_end - last_observed_at > (
+            (SELECT stale_after_us FROM params) * interval '1 microsecond'
+        ) THEN 'unknown'::pulse.check_state_status
+        WHEN last_execution_status = 'success' THEN 'healthy'::pulse.check_state_status
+        WHEN last_execution_status = 'failure' THEN 'unhealthy'::pulse.check_state_status
+        ELSE 'unknown'::pulse.check_state_status
+    END AS timeline_state
+FROM last_execution_per_bucket
+ORDER BY bucket_start
+`
+
+	rows, err := e.db.Query(
+		ctx,
+		query,
+		filter.ServiceID,
+		filter.CheckID,
+		filter.From,
+		filter.To,
+		bucketStepUs,
+		staleAfterUs,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []model.CheckExecutionTimelineRecord
+
+	for rows.Next() {
+		var (
+			row           model.CheckExecutionTimelineRecord
+			rawObservedAt *time.Time
+			rawExecStatus *string
+		)
+
+		err = rows.Scan(
+			&row.BucketStart,
+			&row.BucketEnd,
+			&rawObservedAt,
+			&rawExecStatus,
+			&row.State,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		row.LastObservedAt = rawObservedAt
+		if rawExecStatus != nil {
+			row.LastExecutionStatus = new(model.CheckExecutionStatus(*rawExecStatus))
+		}
+
+		result = append(result, row)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
 func mustField(name string) string {
 	switch name {
 	case "service_id", "check_id", "finished_at":
@@ -241,6 +364,21 @@ func executionBucketExpr(bucket model.CheckExecutionBucket) (string, error) {
 		return "date_trunc('day', finished_at)", nil
 	default:
 		return "", fmt.Errorf("unsupported execution bucket %q", bucket)
+	}
+}
+
+func executionBucketStepMicros(bucket model.CheckExecutionBucket) (int64, error) {
+	switch bucket {
+	case model.CheckExecutionBucketSecond:
+		return time.Second.Microseconds(), nil
+	case "", model.CheckExecutionBucketMinute:
+		return time.Minute.Microseconds(), nil
+	case model.CheckExecutionBucketHour:
+		return time.Hour.Microseconds(), nil
+	case model.CheckExecutionBucketDay:
+		return (24 * time.Hour).Microseconds(), nil
+	default:
+		return 0, fmt.Errorf("unsupported execution bucket %q", bucket)
 	}
 }
 

@@ -22,4 +22,8 @@ type CheckExecutionRepository interface {
 		context.Context,
 		model.CheckExecutionAggregateFilter,
 	) ([]model.CheckExecutionBucketRecord, error)
+	ListExecutionTimeline(
+		context.Context,
+		model.CheckExecutionTimelineFilter,
+	) ([]model.CheckExecutionTimelineRecord, error)
 }
