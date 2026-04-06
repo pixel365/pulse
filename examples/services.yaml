@@ -1,3 +1,4 @@
 services:
   - id: api
     name: Public API
+    description: Public API Description

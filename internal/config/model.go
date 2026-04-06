@@ -60,8 +60,9 @@ type ServiceSet struct {
 }
 
 type Service struct {
-	ID   string `yaml:"id"   json:"id"   validate:"required,min=1"`
-	Name string `yaml:"name" json:"name" validate:"required,min=1"`
+	ID          string `yaml:"id"          json:"id"          validate:"required,min=1"`
+	Name        string `yaml:"name"        json:"name"        validate:"required,min=1"`
+	Description string `yaml:"description" json:"description" validate:"omitempty,min=1"`
 }
 
 type CheckFields struct {
