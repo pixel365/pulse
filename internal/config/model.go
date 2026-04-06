@@ -1,6 +1,11 @@
 package config
 
-import "time"
+import (
+	"maps"
+	"reflect"
+	"slices"
+	"time"
+)
 
 type CheckType string
 type GRPCHealthStatus string
@@ -31,6 +36,10 @@ const (
 	HealthService GRPCHealthService = "grpc.health.v1.Health"
 	HealthMethod  GRPCHealthMethod  = "Check"
 )
+
+type Comparer[T any] interface {
+	Cmp(other T) bool
+}
 
 type StringExpect struct {
 	Contains string `yaml:"contains" json:"contains"`
@@ -137,4 +146,141 @@ type TLSSpec struct {
 	ServerName  string        `yaml:"server_name"  json:"server_name"  validate:"omitempty,min=1"`
 	Port        int           `yaml:"port"         json:"port"         validate:"required,gte=1,lte=65535"`
 	MinValidity time.Duration `yaml:"min_validity" json:"min_validity" validate:"required,gte=1h"`
+}
+
+//nolint:gocyclo,cyclop
+func (o *HttpSpec) Cmp(other *HttpSpec) bool {
+	if o == nil || other == nil {
+		return o == other
+	}
+
+	if o.ExpectedBody == nil && other.ExpectedBody != nil {
+		return false
+	}
+
+	if o.ExpectedBody != nil && other.ExpectedBody == nil {
+		return false
+	}
+
+	if o.ExpectedBody != nil && other.ExpectedBody != nil {
+		if o.ExpectedBody.Equals != other.ExpectedBody.Equals {
+			return false
+		}
+
+		if o.ExpectedBody.Contains != other.ExpectedBody.Contains {
+			return false
+		}
+	}
+
+	return o.URL == other.URL &&
+		o.Method == other.Method &&
+		o.FollowRedirects == other.FollowRedirects &&
+		slices.Equal(o.SuccessCodes, other.SuccessCodes) &&
+		maps.Equal(o.Headers, other.Headers) &&
+		reflect.DeepEqual(o.Payload, other.Payload)
+}
+
+func (o *TCPSpec) Cmp(other *TCPSpec) bool {
+	if o == nil || other == nil {
+		return o == other
+	}
+
+	if o.Expect == nil && other.Expect != nil {
+		return false
+	}
+
+	if o.Expect != nil && other.Expect == nil {
+		return false
+	}
+
+	if o.Expect != nil && other.Expect != nil {
+		if o.Expect.Equals != other.Expect.Equals {
+			return false
+		}
+
+		if o.Expect.Contains != other.Expect.Contains {
+			return false
+		}
+	}
+
+	return o.Host == other.Host &&
+		o.Port == other.Port &&
+		o.Send == other.Send
+}
+
+func (o *GRPCSpec) Cmp(other *GRPCSpec) bool {
+	if o == nil || other == nil {
+		return o == other
+	}
+
+	if o.Request == nil && other.Request != nil {
+		return false
+	}
+
+	if o.Request != nil && other.Request == nil {
+		return false
+	}
+
+	if o.Request != nil && other.Request != nil {
+		if o.Request.Service != other.Request.Service {
+			return false
+		}
+	}
+
+	return o.Host == other.Host &&
+		o.Port == other.Port &&
+		o.Service == other.Service &&
+		o.Method == other.Method &&
+		o.ExpectedHealthStatus == other.ExpectedHealthStatus &&
+		maps.Equal(o.Metadata, other.Metadata)
+}
+
+//nolint:gocognit,gocyclo,cyclop
+func (o *DNSSpec) Cmp(other *DNSSpec) bool {
+	if o == nil || other == nil {
+		return o == other
+	}
+
+	if o.Expect == nil && other.Expect != nil {
+		return false
+	}
+
+	if o.Expect != nil && other.Expect == nil {
+		return false
+	}
+
+	if o.Expect != nil && other.Expect != nil {
+		if len(o.Expect.Equals) != len(other.Expect.Equals) {
+			return false
+		}
+
+		for i := range o.Expect.Equals {
+			if o.Expect.Equals[i] != other.Expect.Equals[i] {
+				return false
+			}
+		}
+
+		if len(o.Expect.Contains) != len(other.Expect.Contains) {
+			return false
+		}
+
+		for i := range o.Expect.Contains {
+			if o.Expect.Contains[i] != other.Expect.Contains[i] {
+				return false
+			}
+		}
+	}
+
+	return o.Server == other.Server && o.Name == other.Name && o.RecordType == other.RecordType
+}
+
+func (o *TLSSpec) Cmp(other *TLSSpec) bool {
+	if o == nil || other == nil {
+		return o == other
+	}
+
+	return o.Host == other.Host &&
+		o.ServerName == other.ServerName &&
+		o.Port == other.Port &&
+		o.MinValidity == other.MinValidity
 }
