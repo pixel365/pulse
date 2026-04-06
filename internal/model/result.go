@@ -191,5 +191,12 @@ func (f *CheckExecutionTimelineFilter) Validate() error {
 		return fmt.Errorf("interval must be greater than zero")
 	}
 
+	switch f.Bucket {
+	case "", CheckExecutionBucketSecond, CheckExecutionBucketMinute,
+		CheckExecutionBucketHour, CheckExecutionBucketDay:
+	default:
+		return fmt.Errorf("unsupported bucket %q", f.Bucket)
+	}
+
 	return nil
 }

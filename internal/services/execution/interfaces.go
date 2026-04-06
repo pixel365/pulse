@@ -11,4 +11,8 @@ type Service interface {
 		context.Context,
 		model.CheckExecutionFilter,
 	) ([]model.CheckExecutionRecord, error)
+	ListExecutionTimeline(
+		context.Context,
+		model.CheckExecutionTimelineFilter,
+	) ([]model.CheckExecutionTimelineRecord, error)
 }

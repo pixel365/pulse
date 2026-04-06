@@ -34,6 +34,13 @@ func (e *Execution) ListExecutions(
 	return e.repo.ListExecutions(ctx, filter)
 }
 
+func (e *Execution) ListExecutionTimeline(
+	ctx context.Context,
+	filter model.CheckExecutionTimelineFilter,
+) ([]model.CheckExecutionTimelineRecord, error) {
+	return e.repo.ListExecutionTimeline(ctx, filter)
+}
+
 func NewExecutionService(db repository.QueryExecutor) *Execution {
 	return &Execution{
 		repo: check.NewExecutionRepository(db),
