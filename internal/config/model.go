@@ -65,22 +65,20 @@ type Service struct {
 	Description string `yaml:"description" json:"description" validate:"omitempty,min=1"`
 }
 
+//nolint:lll
 type CheckFields struct {
-	ID      string `yaml:"id"      json:"id"      validate:"required,min=1"`
-	Name    string `yaml:"name"    json:"name"    validate:"required,min=1"`
-	Service string `yaml:"service" json:"service" validate:"required,min=1"`
-
-	Type CheckType `yaml:"type" json:"type" validate:"required,oneof=http tcp grpc tls dns"`
-
-	//nolint:lll,nolintlint
-	Tags []string `yaml:"tags" json:"tags" validate:"omitempty,min=1,dive,min=1"`
-
-	Timeout          time.Duration `yaml:"timeout"           json:"timeout"           validate:"required,gt=0ms"`
+	ID               string        `yaml:"id"                json:"id"                validate:"required,min=1"`
+	Name             string        `yaml:"name"              json:"name"              validate:"required,min=1"`
+	Service          string        `yaml:"service"           json:"service"           validate:"required,min=1"`
+	Type             CheckType     `yaml:"type"              json:"type"              validate:"required,oneof=http tcp grpc tls dns"`
+	Tags             []string      `yaml:"tags"              json:"tags"              validate:"omitempty,min=1,dive,min=1"`
+	AllowedBuckets   []string      `yaml:"allowed_buckets"   json:"allowed_buckets"   validate:"omitempty,dive,oneof=second minute hour day"`
 	Jitter           time.Duration `yaml:"jitter"            json:"jitter"            validate:"gte=0"`
 	Retries          int           `yaml:"retries"           json:"retries"           validate:"required,gte=0"`
 	FailureThreshold int           `yaml:"failure_threshold" json:"failure_threshold" validate:"required,gte=1"`
 	SuccessThreshold int           `yaml:"success_threshold" json:"success_threshold" validate:"required,gte=1"`
 	Interval         time.Duration `yaml:"interval"          json:"interval"          validate:"required,gt=0ms"`
+	Timeout          time.Duration `yaml:"timeout"           json:"timeout"           validate:"required,gt=0ms"`
 	Enabled          bool          `yaml:"enabled"           json:"enabled"`
 }
 

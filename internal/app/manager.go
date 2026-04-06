@@ -390,5 +390,6 @@ func sameCheckFields(a, b config.CheckFields) bool {
 		a.FailureThreshold == b.FailureThreshold &&
 		a.SuccessThreshold == b.SuccessThreshold &&
 		a.Interval == b.Interval &&
+		slices.Equal(a.AllowedBuckets, b.AllowedBuckets) &&
 		a.Enabled == b.Enabled
 }

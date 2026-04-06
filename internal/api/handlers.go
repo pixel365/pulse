@@ -218,51 +218,91 @@ func (h *Handler) timelineFilterFromRequest(
 
 	filter.Bucket = model.CheckExecutionBucket(query.Get("bucket"))
 
-	interval, err := h.checkInterval(filter.ServiceID, filter.CheckID)
+	fields, err := h.checkFields(filter.ServiceID, filter.CheckID)
 	if err != nil {
 		return filter, err
 	}
-	filter.Interval = interval
+	filter.Interval = fields.Interval
+
+	if !isAllowedBucket(filter.Bucket, fields.AllowedBuckets) {
+		return filter, fmt.Errorf(
+			"bucket %q is not allowed for check %s/%s; allowed buckets: %v",
+			filter.Bucket,
+			filter.ServiceID,
+			filter.CheckID,
+			allowedBuckets(fields.AllowedBuckets),
+		)
+	}
 
 	return filter, filter.Validate()
 }
 
-func (h *Handler) checkInterval(serviceID, checkID string) (time.Duration, error) {
-	cfg := h.cfgProvider.Current()
-
-	if interval, ok := checkInterval(cfg.HttpChecks, serviceID, checkID); ok {
-		return interval, nil
+func allowedBuckets(allowed []string) []string {
+	if len(allowed) > 0 {
+		return allowed
 	}
 
-	if interval, ok := checkInterval(cfg.TCPChecks, serviceID, checkID); ok {
-		return interval, nil
+	return []string{
+		string(model.CheckExecutionBucketMinute),
+		string(model.CheckExecutionBucketHour),
 	}
-
-	if interval, ok := checkInterval(cfg.GRPCChecks, serviceID, checkID); ok {
-		return interval, nil
-	}
-
-	if interval, ok := checkInterval(cfg.DNSChecks, serviceID, checkID); ok {
-		return interval, nil
-	}
-
-	if interval, ok := checkInterval(cfg.TLSChecks, serviceID, checkID); ok {
-		return interval, nil
-	}
-
-	return 0, fmt.Errorf("check %s/%s not found", serviceID, checkID)
 }
 
-func checkInterval[T any](
-	checks map[string]config.TypedCheck[T],
-	serviceID string,
-	checkID string,
-) (time.Duration, bool) {
-	for i := range checks {
-		if checks[i].Service == serviceID && checks[i].ID == checkID {
-			return checks[i].Interval, true
+func isAllowedBucket(bucket model.CheckExecutionBucket, allowed []string) bool {
+	if bucket == "" {
+		bucket = model.CheckExecutionBucketMinute
+	}
+
+	if len(allowed) == 0 {
+		return bucket == model.CheckExecutionBucketMinute ||
+			bucket == model.CheckExecutionBucketHour
+	}
+
+	for i := range allowed {
+		if model.CheckExecutionBucket(allowed[i]) == bucket {
+			return true
 		}
 	}
 
-	return 0, false
+	return false
+}
+
+func (h *Handler) checkFields(serviceID, checkID string) (config.CheckFields, error) {
+	cfg := h.cfgProvider.Current()
+
+	if fields, ok := checkFields(cfg.HttpChecks, serviceID, checkID); ok {
+		return fields, nil
+	}
+
+	if fields, ok := checkFields(cfg.TCPChecks, serviceID, checkID); ok {
+		return fields, nil
+	}
+
+	if fields, ok := checkFields(cfg.GRPCChecks, serviceID, checkID); ok {
+		return fields, nil
+	}
+
+	if fields, ok := checkFields(cfg.DNSChecks, serviceID, checkID); ok {
+		return fields, nil
+	}
+
+	if fields, ok := checkFields(cfg.TLSChecks, serviceID, checkID); ok {
+		return fields, nil
+	}
+
+	return config.CheckFields{}, fmt.Errorf("check %s/%s not found", serviceID, checkID)
+}
+
+func checkFields[T any](
+	checks map[string]config.TypedCheck[T],
+	serviceID string,
+	checkID string,
+) (config.CheckFields, bool) {
+	for i := range checks {
+		if checks[i].Service == serviceID && checks[i].ID == checkID {
+			return checks[i].CheckFields, true
+		}
+	}
+
+	return config.CheckFields{}, false
 }

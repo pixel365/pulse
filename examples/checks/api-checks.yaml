@@ -10,6 +10,7 @@ checks:
     retries: 3
     failure_threshold: 3
     success_threshold: 1
+    allowed_buckets: [ minute, hour ]
     tags: [ public, critical ]
     spec:
       url: http://localhost:8080
@@ -38,6 +39,7 @@ checks:
     retries: 3
     failure_threshold: 3
     success_threshold: 1
+    allowed_buckets: [ minute, hour ]
     tags: [ public, critical ]
     spec:
       host: localhost
@@ -57,6 +59,7 @@ checks:
     retries: 3
     failure_threshold: 3
     success_threshold: 1
+    allowed_buckets: [ minute, hour ]
     tags: [ internal, critical ]
     spec:
       host: localhost
@@ -80,6 +83,7 @@ checks:
     retries: 3
     failure_threshold: 3
     success_threshold: 1
+    allowed_buckets: [ minute, hour ]
     tags: [ public, critical ]
     spec:
       server: 8.8.8.8
@@ -100,6 +104,7 @@ checks:
     retries: 2
     failure_threshold: 2
     success_threshold: 1
+    allowed_buckets: [ hour, day ]
     tags: [ public, security ]
     spec:
       host: api.example.com
