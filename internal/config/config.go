@@ -11,12 +11,12 @@ import (
 )
 
 type Config struct {
-	Services   map[string]Service
-	HttpChecks map[string]TypedCheck[HttpSpec]
-	TCPChecks  map[string]TypedCheck[TCPSpec]
-	GRPCChecks map[string]TypedCheck[GRPCSpec]
-	DNSChecks  map[string]TypedCheck[DNSSpec]
-	TLSChecks  map[string]TypedCheck[TLSSpec]
+	Services   map[string]Service              `json:"services"`
+	HttpChecks map[string]TypedCheck[HttpSpec] `json:"http_checks"`
+	TCPChecks  map[string]TypedCheck[TCPSpec]  `json:"tcp_checks"`
+	GRPCChecks map[string]TypedCheck[GRPCSpec] `json:"grpc_checks"`
+	DNSChecks  map[string]TypedCheck[DNSSpec]  `json:"dns_checks"`
+	TLSChecks  map[string]TypedCheck[TLSSpec]  `json:"tls_checks"`
 	dir        string
 }
 

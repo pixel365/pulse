@@ -11,10 +11,11 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/render"
 	"github.com/joho/godotenv"
 
 	"github.com/pixel365/pulse/internal/api"
-
+	"github.com/pixel365/pulse/internal/config"
 	"github.com/pixel365/pulse/internal/db/postgres"
 	"github.com/pixel365/pulse/internal/logger"
 )
@@ -40,9 +41,32 @@ func main() {
 	r.Use(middleware.RealIP)
 	r.Use(api.RequestLogger(log))
 
+	provider := config.NewCurrentProvider(config.MustLoad())
+
+	go func() {
+		ticker := time.NewTicker(10 * time.Second)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				c, err := config.Load()
+				if err == nil {
+					log.Debug(ctx, "reloading config")
+					provider.Reload(c)
+				} else {
+					log.Error(ctx, "failed to reload config", "error", err)
+				}
+			}
+		}
+	}()
+
 	r.Route("/v1", func(r chi.Router) {
 		r.Get("/services", func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusNotImplemented)
+			render.Status(r, http.StatusOK)
+			render.JSON(w, r, provider.Current().Services)
 		})
 
 		r.Get("/services/{serviceId}/checks/state", func(w http.ResponseWriter, r *http.Request) {
