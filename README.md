@@ -33,11 +33,12 @@ What exists today:
 - PostgreSQL-backed raw check execution storage
 - persisted current check state
 - migration CLI via `cmd/pulse-migrate`
+- early REST API via `cmd/pulse-api`
 
 What does not exist yet in a finished form:
 
 - finalized service-level aggregation
-- query/read API for current and historical state
+- complete query/read API for current and historical state
 - public/internal status page generation
 - production-ready logging and observability
 - stable external interfaces
@@ -75,12 +76,26 @@ Run with:
 CONFIG_DIR=./examples go run ./cmd/pulse
 ```
 
+Run API with:
+
+```bash
+API_LISTEN_ADDR=:8080 CONFIG_DIR=./examples go run ./cmd/pulse-api
+```
+
+Implemented API endpoints:
+
+- `GET /v1/services`
+- `GET /v1/services/{serviceId}/checks/state`
+- `GET /v1/services/{serviceId}/checks/{checkId}/executions`
+- `GET /v1/services/{serviceId}/checks/{checkId}/timeline`
+
 ## Notes
 
 A few implementation details are intentionally narrow at this stage:
 
 - gRPC support currently targets only the standard health check API: `grpc.health.v1.Health/Check`
 - raw execution history and current check state are stored in PostgreSQL
+- API configuration is read from the latest valid hot-reloaded config snapshot
 - internal architecture is still evolving
 
 ## Important
