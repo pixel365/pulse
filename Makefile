@@ -1,6 +1,6 @@
-.PHONY: all tidy fa fmt lint vet test pulse pulse-migrate pulse-validate
+.PHONY: all tidy fa fmt lint vet test pulse pulse-migrate pulse-validate pulse-api
 
-SERVICES = pulse pulse-migrate pulse-validate
+SERVICES = pulse pulse-migrate pulse-validate pulse-api
 
 all: tidy fa fmt lint
 
