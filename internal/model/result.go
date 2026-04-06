@@ -74,8 +74,7 @@ type CheckPolicy struct {
 }
 
 type CheckExecutionRecord struct {
-	CreatedAt time.Time
-	ID        string
+	CreatedAt time.Time `json:"created_at"`
 	CheckExecutionResult
 }
 
