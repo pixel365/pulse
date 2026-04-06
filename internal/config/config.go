@@ -21,9 +21,18 @@ type Config struct {
 }
 
 func MustLoad() *Config {
+	cfg, err := Load()
+	if err != nil {
+		panic(err)
+	}
+
+	return cfg
+}
+
+func Load() (*Config, error) {
 	dir := os.Getenv("CONFIG_DIR")
 	if dir == "" {
-		panic("CONFIG_DIR is not set")
+		return nil, errors.New("CONFIG_DIR is not set")
 	}
 
 	cfg := &Config{
@@ -36,10 +45,10 @@ func MustLoad() *Config {
 		TLSChecks:  make(map[string]TypedCheck[TLSSpec]),
 	}
 	if err := cfg.load(); err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	return cfg
+	return cfg, nil
 }
 
 func (c *Config) load() error {

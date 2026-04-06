@@ -57,6 +57,12 @@ Example configuration files are available in:
 - `examples/services.yaml`
 - `examples/checks/api-checks.yaml`
 
+Validate configuration with:
+
+```bash
+CONFIG_DIR=./examples go run ./cmd/pulse-validate
+```
+
 Before starting the app, apply migrations:
 
 ```bash

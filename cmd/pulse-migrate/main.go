@@ -20,7 +20,7 @@ var (
 
 func rootCommand(ctx context.Context) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "migrate",
+		Use:   "pulse-migrate",
 		Short: "Migrate database",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			migrationsDir = os.Getenv("POSTGRES_MIGRATIONS_DIR")
