@@ -32,7 +32,7 @@ What exists today:
 - gRPC health checks via `grpc.health.v1.Health/Check`
 - PostgreSQL-backed raw check execution storage
 - persisted current check state
-- migration CLI via `cmd/migrate`
+- migration CLI via `cmd/pulse-migrate`
 
 What does not exist yet in a finished form:
 
@@ -60,7 +60,7 @@ Example configuration files are available in:
 Before starting the app, apply migrations:
 
 ```bash
-go run ./cmd/migrate up
+go run ./cmd/pulse-migrate up
 ```
 
 Run with:
