@@ -14,6 +14,8 @@ import (
 	"github.com/go-chi/render"
 	"github.com/joho/godotenv"
 
+	"github.com/pixel365/pulse/internal/services/state"
+
 	"github.com/pixel365/pulse/internal/api"
 	"github.com/pixel365/pulse/internal/config"
 	"github.com/pixel365/pulse/internal/db/postgres"
@@ -43,6 +45,8 @@ func main() {
 
 	provider := config.NewCurrentProvider(config.MustLoad())
 
+	stateSvc := state.NewStateService(pool)
+
 	go func() {
 		ticker := time.NewTicker(10 * time.Second)
 		defer ticker.Stop()
@@ -70,7 +74,18 @@ func main() {
 		})
 
 		r.Get("/services/{serviceId}/checks/state", func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusNotImplemented)
+			serviceId := chi.URLParam(r, "serviceId")
+			states, err := stateSvc.GetStatesByService(r.Context(), serviceId)
+			if err != nil {
+				render.Status(r, http.StatusInternalServerError)
+				render.JSON(w, r, map[string]string{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			render.Status(r, http.StatusOK)
+			render.JSON(w, r, states)
 		})
 
 		r.Get(

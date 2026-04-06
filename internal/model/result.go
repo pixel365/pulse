@@ -48,21 +48,21 @@ type CheckExecutionResult struct {
 }
 
 type CheckState struct {
-	UpdatedAt            time.Time
-	LastFailureAt        *time.Time
-	LastSuccessAt        *time.Time
-	LastDetails          map[string]any
-	LastStatus           CheckExecutionStatus
-	LastExecutionID      string
-	CheckID              string
-	LastErrorKind        e.ErrorKind
-	LastErrorMessage     string
-	Status               CheckStateStatus
-	CheckType            config.CheckType
-	ServiceID            string
-	LastDuration         time.Duration
-	ConsecutiveSuccesses int
-	ConsecutiveFailures  int
+	UpdatedAt            time.Time            `json:"updated_at"`
+	LastFailureAt        *time.Time           `json:"last_failure_at"`
+	LastSuccessAt        *time.Time           `json:"last_success_at"`
+	LastDetails          map[string]any       `json:"last_details"`
+	LastStatus           CheckExecutionStatus `json:"last_status"`
+	LastExecutionID      string               `json:"last_execution_id"`
+	CheckID              string               `json:"check_id"`
+	LastErrorKind        e.ErrorKind          `json:"last_error_kind"`
+	LastErrorMessage     string               `json:"last_error_message"`
+	Status               CheckStateStatus     `json:"status"`
+	CheckType            config.CheckType     `json:"check_type"`
+	ServiceID            string               `json:"service_id"`
+	LastDuration         time.Duration        `json:"last_duration"`
+	ConsecutiveSuccesses int                  `json:"consecutive_successes"`
+	ConsecutiveFailures  int                  `json:"consecutive_failures"`
 }
 
 type CheckPolicy struct {
