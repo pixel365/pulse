@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"fmt"
 	"slices"
 	"sync"
 	"time"
@@ -286,7 +285,7 @@ func (m *manager) runTLSChecker(
 }
 
 func (m *manager) cmp(ctx context.Context) {
-	cfg, err := loadConfig()
+	cfg, err := config.Load()
 	if err != nil {
 		m.logger.Error(ctx, "invalid config", "error", err)
 		return
@@ -357,16 +356,6 @@ func (m *manager) cancelChecker(key string) {
 
 func checkKey(checkType config.CheckType, key string) string {
 	return string(checkType) + ":" + key
-}
-
-func loadConfig() (cfg *config.Config, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("config load panic: %v", r)
-		}
-	}()
-
-	return config.MustLoad(), nil
 }
 
 func sameHTTPCheck(a, b config.TypedCheck[config.HttpSpec]) bool {
