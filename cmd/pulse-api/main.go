@@ -43,31 +43,12 @@ func main() {
 	r.Use(middleware.RealIP)
 	r.Use(api.RequestLogger(log))
 
-	provider := config.NewCurrentProvider(config.MustLoad())
+	provider := config.NewCurrentProvider(config.MustLoad(), log)
+	provider.Start(ctx)
 
 	stateSvc := state.NewStateService(pool)
 	executionSvc := executionsvc.NewExecutionService(pool)
 	handler := api.NewHandler(provider, stateSvc, executionSvc)
-
-	go func() {
-		ticker := time.NewTicker(10 * time.Second)
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				c, err := config.Load()
-				if err == nil {
-					log.Debug(ctx, "reloading config")
-					provider.Reload(c)
-				} else {
-					log.Error(ctx, "failed to reload config", "error", err)
-				}
-			}
-		}
-	}()
 
 	api.Routes(r, handler)
 
