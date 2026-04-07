@@ -70,7 +70,6 @@ type CheckPolicy struct {
 	ServiceID        string
 	CheckType        config.CheckType
 	FailureThreshold int
-	SuccessThreshold int
 }
 
 type CheckExecutionRecord struct {

@@ -184,6 +184,79 @@ ON CONFLICT (check_id, service_id) DO UPDATE SET
 	return err
 }
 
+func (s *StateCheck) AddCheckStateEvent(
+	ctx context.Context,
+	state *model.CheckState,
+) error {
+	if state == nil {
+		return errors.New("check state is nil")
+	}
+
+	query := `
+INSERT INTO pulse.check_state_events(
+    execution_id, 
+    check_id, 
+    service_id, 
+    check_type, 
+    status, 
+    last_status,
+    last_error_kind, 
+    last_error_message, 
+    last_duration,
+    last_details, 
+    last_success_at, 
+    last_failure_at,
+    consecutive_successes, 
+    consecutive_failures,
+    observed_at                    
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15  
+)
+`
+
+	var (
+		rawDetails      []byte
+		rawErrorKind    *string
+		rawErrorMessage *string
+	)
+
+	if state.LastDetails != nil {
+		data, err := json.Marshal(state.LastDetails)
+		if err != nil {
+			return err
+		}
+		rawDetails = data
+	}
+
+	if state.LastErrorKind != e.ErrNone {
+		rawErrorKind = new(string(state.LastErrorKind))
+	}
+
+	if state.LastErrorMessage != "" {
+		rawErrorMessage = &state.LastErrorMessage
+	}
+
+	_, err := s.db.Exec(ctx, query,
+		state.LastExecutionID,
+		state.CheckID,
+		state.ServiceID,
+		state.CheckType,
+		state.Status,
+		state.LastStatus,
+		rawErrorKind,
+		rawErrorMessage,
+		state.LastDuration.Microseconds(),
+		rawDetails,
+		state.LastSuccessAt,
+		state.LastFailureAt,
+		state.ConsecutiveSuccesses,
+		state.ConsecutiveFailures,
+		state.UpdatedAt,
+	)
+
+	return err
+}
+
 func (s *StateCheck) ListCheckStatesByService(
 	ctx context.Context,
 	serviceID string,

@@ -236,61 +236,56 @@ func (e *ExecutionCheck) ListExecutionTimeline(
 
 	query := `
 WITH params AS (
-    SELECT
-        $1::text AS service_id,
-        $2::text AS check_id,
-        $3::timestamptz AS from_ts,
-        $4::timestamptz AS to_ts,
-        $5::bigint AS bucket_step_us,
-        $6::bigint AS stale_after_us
-),
-buckets AS (
-    SELECT
-        gs AS bucket_start,
-        gs + (p.bucket_step_us * interval '1 microsecond') AS bucket_end
-    FROM params p,
-    LATERAL generate_series(
-        p.from_ts,
-        p.to_ts,
-        p.bucket_step_us * interval '1 microsecond'
-    ) AS gs
-),
-last_execution_per_bucket AS (
-    SELECT
-        b.bucket_start,
-        b.bucket_end,
-        e.finished_at AS last_observed_at,
-        e.status AS last_execution_status
-    FROM buckets b
-    CROSS JOIN params p
-    LEFT JOIN LATERAL (
-        SELECT
-            ce.finished_at,
-            ce.status
-        FROM pulse.check_executions ce
-        WHERE ce.service_id = p.service_id
-          AND ce.check_id = p.check_id
-          AND ce.finished_at <= b.bucket_end
-        ORDER BY ce.finished_at DESC
-        LIMIT 1
-    ) e ON TRUE
-)
-SELECT
-    bucket_start,
-    bucket_end,
-    last_observed_at,
-    last_execution_status,
-    CASE
-        WHEN last_observed_at IS NULL THEN 'unknown'::pulse.check_state_status
-        WHEN bucket_end - last_observed_at > (
-            (SELECT stale_after_us FROM params) * interval '1 microsecond'
-        ) THEN 'unknown'::pulse.check_state_status
-        WHEN last_execution_status = 'success' THEN 'healthy'::pulse.check_state_status
-        WHEN last_execution_status = 'failure' THEN 'unhealthy'::pulse.check_state_status
-        ELSE 'unknown'::pulse.check_state_status
-    END AS timeline_state
-FROM last_execution_per_bucket
-ORDER BY bucket_start
+      SELECT
+          $1::text AS service_id,
+          $2::text AS check_id,
+          $3::timestamptz AS from_ts,
+          $4::timestamptz AS to_ts,
+          $5::bigint AS bucket_step_us,
+          $6::bigint AS stale_after_us
+  ),
+  buckets AS (
+      SELECT
+          gs AS bucket_start,
+          LEAST(
+              gs + (p.bucket_step_us * interval '1 microsecond'),
+              p.to_ts
+          ) AS bucket_end
+      FROM params p,
+      LATERAL generate_series(
+          p.from_ts,
+          p.to_ts,
+          p.bucket_step_us * interval '1 microsecond'
+      ) AS gs
+      WHERE gs < p.to_ts
+  )
+  SELECT
+      b.bucket_start,
+      b.bucket_end,
+      last_event.observed_at AS last_observed_at,
+      last_event.last_status AS last_execution_status,
+      CASE
+          WHEN last_event.observed_at IS NULL THEN 'unknown'::pulse.check_state_status
+          WHEN b.bucket_end - last_event.observed_at > (
+              (SELECT stale_after_us FROM params) * interval '1 microsecond'
+          ) THEN 'unknown'::pulse.check_state_status
+          ELSE last_event.status
+      END AS timeline_state
+  FROM buckets b
+  LEFT JOIN LATERAL (
+      SELECT
+          e.observed_at,
+          e.last_status,
+          e.status
+      FROM pulse.check_state_events e
+      CROSS JOIN params p
+      WHERE e.service_id = p.service_id
+        AND e.check_id = p.check_id
+        AND e.observed_at <= b.bucket_end
+      ORDER BY e.observed_at DESC, e.id DESC
+      LIMIT 1
+  ) last_event ON TRUE
+  ORDER BY b.bucket_start
 `
 
 	rows, err := e.db.Query(

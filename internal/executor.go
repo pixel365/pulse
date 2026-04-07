@@ -47,7 +47,6 @@ func (c *CheckExec) Execute(
 				ServiceID:        result.ServiceID,
 				CheckType:        result.CheckType,
 				FailureThreshold: c.cfg.FailureThreshold,
-				SuccessThreshold: c.cfg.SuccessThreshold,
 			}
 
 			if err := c.handler.Handle(ctx, policy, result); err != nil {

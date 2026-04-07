@@ -29,7 +29,6 @@ func transition(
 		nextState.ConsecutiveFailures = currentState.ConsecutiveFailures
 	}
 
-	successThreshold := minOne(policy.SuccessThreshold)
 	failureThreshold := minOne(policy.FailureThreshold)
 
 	switch result.Status {
@@ -37,9 +36,7 @@ func transition(
 		nextState.ConsecutiveSuccesses++
 		nextState.ConsecutiveFailures = 0
 		nextState.LastSuccessAt = &result.FinishedAt
-		if nextState.ConsecutiveSuccesses >= successThreshold {
-			nextState.Status = model.CheckStateHealthy
-		}
+		nextState.Status = model.CheckStateHealthy
 	case model.CheckExecutionFailure:
 		nextState.ConsecutiveFailures++
 		nextState.ConsecutiveSuccesses = 0

@@ -9,6 +9,7 @@ import (
 type CheckStateRepository interface {
 	GetCheckState(context.Context, string, string) (*model.CheckState, error)
 	UpsertCheckState(context.Context, *model.CheckState) error
+	AddCheckStateEvent(context.Context, *model.CheckState) error
 	ListCheckStatesByService(context.Context, string) ([]model.CheckState, error)
 }
 

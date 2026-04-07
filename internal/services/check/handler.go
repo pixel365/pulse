@@ -38,7 +38,13 @@ func (h *Handler) Handle(
 				return err
 			}
 
-			return repo.UpsertCheckState(ctx, new(transition(policy, currentState, result)))
+			nextState := new(transition(policy, currentState, result))
+
+			if err = repo.AddCheckStateEvent(ctx, nextState); err != nil {
+				return err
+			}
+
+			return repo.UpsertCheckState(ctx, nextState)
 		},
 	)
 

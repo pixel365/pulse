@@ -76,7 +76,6 @@ type CheckFields struct {
 	Jitter           time.Duration `yaml:"jitter"            json:"jitter"            validate:"gte=0"`
 	Retries          int           `yaml:"retries"           json:"retries"           validate:"required,gte=0"`
 	FailureThreshold int           `yaml:"failure_threshold" json:"failure_threshold" validate:"required,gte=1"`
-	SuccessThreshold int           `yaml:"success_threshold" json:"success_threshold" validate:"required,gte=1"`
 	Interval         time.Duration `yaml:"interval"          json:"interval"          validate:"required,gt=0ms"`
 	Timeout          time.Duration `yaml:"timeout"           json:"timeout"           validate:"required,gt=0ms"`
 	Enabled          bool          `yaml:"enabled"           json:"enabled"`

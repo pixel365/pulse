@@ -179,8 +179,8 @@ func decodeTypedCheck[T any](raw Check) (TypedCheck[T], error) {
 }
 
 func appendTypedCheck[T any](dst map[string]TypedCheck[T], raw Check) error {
-	if _, found := dst[raw.Name]; found {
-		return fmt.Errorf("duplicate check name: %s", raw.Name)
+	if _, found := dst[raw.ID]; found {
+		return fmt.Errorf("duplicate check id: %s", raw.ID)
 	}
 
 	typedCheck, err := decodeTypedCheck[T](raw)
@@ -188,7 +188,7 @@ func appendTypedCheck[T any](dst map[string]TypedCheck[T], raw Check) error {
 		return err
 	}
 
-	dst[raw.Name] = typedCheck
+	dst[raw.ID] = typedCheck
 
 	return nil
 }
