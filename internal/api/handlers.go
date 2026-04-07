@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -45,6 +46,15 @@ type Handler struct {
 	state       state.StateService
 }
 
+type apiError struct {
+	err    error
+	status int
+}
+
+func (e apiError) Error() string {
+	return e.err.Error()
+}
+
 func NewHandler(
 	cfgProvider config.ConfigProvider,
 	stateSvc state.StateService,
@@ -64,6 +74,11 @@ func (h *Handler) Services(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) ServiceCheckStates(w http.ResponseWriter, r *http.Request) {
 	serviceID := chi.URLParam(r, "serviceId")
+	if err := h.ensureService(serviceID); err != nil {
+		errorResponse(w, r, statusCode(err, http.StatusBadRequest), err)
+		return
+	}
+
 	states, err := h.state.GetStatesByService(r.Context(), serviceID)
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
@@ -77,7 +92,12 @@ func (h *Handler) ServiceCheckStates(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) CheckExecutions(w http.ResponseWriter, r *http.Request) {
 	filter, err := executionFilterFromRequest(r)
 	if err != nil {
-		errorResponse(w, r, http.StatusBadRequest, err)
+		errorResponse(w, r, statusCode(err, http.StatusBadRequest), err)
+		return
+	}
+
+	if err = h.ensureCheck(filter.ServiceID, filter.CheckID); err != nil {
+		errorResponse(w, r, statusCode(err, http.StatusBadRequest), err)
 		return
 	}
 
@@ -94,7 +114,7 @@ func (h *Handler) CheckExecutions(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) CheckTimeline(w http.ResponseWriter, r *http.Request) {
 	filter, err := h.timelineFilterFromRequest(r)
 	if err != nil {
-		errorResponse(w, r, http.StatusBadRequest, err)
+		errorResponse(w, r, statusCode(err, http.StatusBadRequest), err)
 		return
 	}
 
@@ -141,6 +161,15 @@ func executionFilterFromRequest(r *http.Request) (model.CheckExecutionFilter, er
 	}
 
 	return filter, nil
+}
+
+func statusCode(err error, fallback int) int {
+	var apiErr apiError
+	if ok := errors.As(err, &apiErr); ok {
+		return apiErr.status
+	}
+
+	return fallback
 }
 
 func errorResponse(w http.ResponseWriter, r *http.Request, status int, err error) {
@@ -237,6 +266,22 @@ func (h *Handler) timelineFilterFromRequest(
 	return filter, filter.Validate()
 }
 
+func (h *Handler) ensureService(serviceID string) error {
+	if _, ok := h.cfgProvider.Current().Services[serviceID]; ok {
+		return nil
+	}
+
+	return apiError{
+		status: http.StatusNotFound,
+		err:    fmt.Errorf("service %s not found", serviceID),
+	}
+}
+
+func (h *Handler) ensureCheck(serviceID, checkID string) error {
+	_, err := h.checkFields(serviceID, checkID)
+	return err
+}
+
 func allowedBuckets(allowed []string) []string {
 	if len(allowed) > 0 {
 		return allowed
@@ -290,7 +335,10 @@ func (h *Handler) checkFields(serviceID, checkID string) (config.CheckFields, er
 		return fields, nil
 	}
 
-	return config.CheckFields{}, fmt.Errorf("check %s/%s not found", serviceID, checkID)
+	return config.CheckFields{}, apiError{
+		status: http.StatusNotFound,
+		err:    fmt.Errorf("check %s/%s not found", serviceID, checkID),
+	}
 }
 
 func checkFields[T any](
