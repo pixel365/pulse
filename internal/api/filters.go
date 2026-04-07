@@ -40,10 +40,15 @@ func executionFilterFromRequest(r *http.Request) (model.CheckExecutionFilter, er
 		if err != nil {
 			return filter, err
 		}
+
+		if limit <= 0 {
+			return filter, fmt.Errorf("limit must be greater than zero")
+		}
+
 		filter.Limit = limit
 	}
 
-	return filter, nil
+	return filter, validateExecutionFilter(filter)
 }
 
 func (h *Handler) timelineFilterFromRequest(
@@ -180,11 +185,39 @@ func validateBucketFilter(filter model.CheckExecutionAggregateFilter) error {
 		return fmt.Errorf("check_id is required")
 	}
 
+	if filter.From == nil {
+		return fmt.Errorf("from is required")
+	}
+
+	if filter.To == nil {
+		return fmt.Errorf("to is required")
+	}
+
+	if !filter.To.After(*filter.From) {
+		return fmt.Errorf("to must be after from")
+	}
+
 	switch filter.Bucket {
 	case "", model.CheckExecutionBucketSecond, model.CheckExecutionBucketMinute,
 		model.CheckExecutionBucketHour, model.CheckExecutionBucketDay:
 	default:
 		return fmt.Errorf("unsupported bucket %q", filter.Bucket)
+	}
+
+	return nil
+}
+
+func validateExecutionFilter(filter model.CheckExecutionFilter) error {
+	if filter.ServiceID == "" {
+		return fmt.Errorf("service_id is required")
+	}
+
+	if filter.CheckID == "" {
+		return fmt.Errorf("check_id is required")
+	}
+
+	if filter.From != nil && filter.To != nil && !filter.To.After(*filter.From) {
+		return fmt.Errorf("to must be after from")
 	}
 
 	return nil
