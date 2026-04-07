@@ -383,7 +383,6 @@ func sameCheckFields(a, b config.CheckFields) bool {
 		a.Name == b.Name &&
 		a.Service == b.Service &&
 		a.Type == b.Type &&
-		slices.Equal(a.Tags, b.Tags) &&
 		a.Timeout == b.Timeout &&
 		a.Jitter == b.Jitter &&
 		a.Retries == b.Retries &&

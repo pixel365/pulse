@@ -32,6 +32,7 @@ What exists today:
 - gRPC health checks via `grpc.health.v1.Health/Check`
 - PostgreSQL-backed raw check execution storage
 - persisted current check state
+- persisted check state event history
 - migration CLI via `cmd/pulse-migrate`
 - early REST API via `cmd/pulse-api`
 
@@ -79,23 +80,33 @@ CONFIG_DIR=./examples go run ./cmd/pulse
 Run API with:
 
 ```bash
-API_LISTEN_ADDR=:8080 CONFIG_DIR=./examples go run ./cmd/pulse-api
+API_LISTEN_ADDR=:8080 INTERNAL_API_ENABLED=true CONFIG_DIR=./examples go run ./cmd/pulse-api
 ```
 
-Implemented API endpoints:
+The API process has separate internal and public route groups.
+Both are disabled by default and must be enabled explicitly:
 
-- `GET /v1/services`
-- `GET /v1/services/{serviceId}/checks/state`
-- `GET /v1/services/{serviceId}/checks/{checkId}/executions`
-- `GET /v1/services/{serviceId}/checks/{checkId}/timeline`
-- `GET /v1/services/{serviceId}/checks/{checkId}/buckets`
+- `INTERNAL_API_ENABLED=true` enables monitoring/admin-oriented endpoints
+- `PUBLIC_API_ENABLED=true` enables public status endpoints
+
+Implemented internal API endpoints:
+
+- `GET /internal/v1/services`
+- `GET /internal/v1/services/{serviceId}/checks/state`
+- `GET /internal/v1/services/{serviceId}/checks/{checkId}/executions`
+- `GET /internal/v1/services/{serviceId}/checks/{checkId}/timeline`
+- `GET /internal/v1/services/{serviceId}/checks/{checkId}/buckets`
+
+Placeholder public API endpoints:
+
+- `GET /public/v1/status`
 
 ## Notes
 
 A few implementation details are intentionally narrow at this stage:
 
 - gRPC support currently targets only the standard health check API: `grpc.health.v1.Health/Check`
-- raw execution history and current check state are stored in PostgreSQL
+- raw execution history, current check state, and check state event history are stored in PostgreSQL
 - API configuration is read from the latest valid hot-reloaded config snapshot
 - internal architecture is still evolving
 - timeline and bucket endpoints respect per-check `allowed_buckets`

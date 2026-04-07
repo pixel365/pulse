@@ -12,6 +12,7 @@ type GRPCHealthStatus string
 type RecordType string
 type GRPCHealthService string
 type GRPCHealthMethod string
+type StatusImpact string
 
 const (
 	HTTP CheckType = "http"
@@ -35,6 +36,11 @@ const (
 
 	HealthService GRPCHealthService = "grpc.health.v1.Health"
 	HealthMethod  GRPCHealthMethod  = "Check"
+
+	StatusImpactNone     StatusImpact = "none"
+	StatusImpactMinor    StatusImpact = "minor"
+	StatusImpactMajor    StatusImpact = "major"
+	StatusImpactCritical StatusImpact = "critical"
 )
 
 type Comparer[T any] interface {
@@ -67,17 +73,17 @@ type Service struct {
 
 //nolint:lll
 type CheckFields struct {
-	ID               string        `yaml:"id"                json:"id"                validate:"required,min=1"`
+	StatusImpact     StatusImpact  `yaml:"status_impact"     json:"status_impact"     validate:"required,oneof=none minor major critical"`
 	Name             string        `yaml:"name"              json:"name"              validate:"required,min=1"`
 	Service          string        `yaml:"service"           json:"service"           validate:"required,min=1"`
 	Type             CheckType     `yaml:"type"              json:"type"              validate:"required,oneof=http tcp grpc tls dns"`
-	Tags             []string      `yaml:"tags"              json:"tags"              validate:"omitempty,min=1,dive,min=1"`
+	ID               string        `yaml:"id"                json:"id"                validate:"required,min=1"`
 	AllowedBuckets   []string      `yaml:"allowed_buckets"   json:"allowed_buckets"   validate:"omitempty,dive,oneof=second minute hour day"`
 	Jitter           time.Duration `yaml:"jitter"            json:"jitter"            validate:"gte=0"`
-	Retries          int           `yaml:"retries"           json:"retries"           validate:"required,gte=0"`
 	FailureThreshold int           `yaml:"failure_threshold" json:"failure_threshold" validate:"required,gte=1"`
 	Interval         time.Duration `yaml:"interval"          json:"interval"          validate:"required,gt=0ms"`
 	Timeout          time.Duration `yaml:"timeout"           json:"timeout"           validate:"required,gt=0ms"`
+	Retries          int           `yaml:"retries"           json:"retries"           validate:"required,gte=0"`
 	Enabled          bool          `yaml:"enabled"           json:"enabled"`
 }
 
