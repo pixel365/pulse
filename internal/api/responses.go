@@ -31,6 +31,14 @@ type checkExecutionTimelineResponse struct {
 	State               model.CheckStateStatus      `json:"state"`
 }
 
+type checkExecutionBucketResponse struct {
+	BucketStart   time.Time `json:"bucket_start"`
+	Total         int       `json:"total"`
+	SuccessCount  int       `json:"success_count"`
+	FailureCount  int       `json:"failure_count"`
+	AvgDurationUs int64     `json:"avg_duration_us"`
+}
+
 func checkExecutionRecordsResponse(records []model.CheckExecutionRecord) []checkExecutionResponse {
 	result := make([]checkExecutionResponse, 0, len(records))
 	for i := range records {
@@ -65,6 +73,23 @@ func checkExecutionTimelineResponseFromRecords(
 			LastObservedAt:      records[i].LastObservedAt,
 			LastExecutionStatus: records[i].LastExecutionStatus,
 			State:               records[i].State,
+		})
+	}
+
+	return result
+}
+
+func checkExecutionBucketResponseFromRecords(
+	records []model.CheckExecutionBucketRecord,
+) []checkExecutionBucketResponse {
+	result := make([]checkExecutionBucketResponse, 0, len(records))
+	for i := range records {
+		result = append(result, checkExecutionBucketResponse{
+			BucketStart:   records[i].BucketStart,
+			Total:         records[i].Total,
+			SuccessCount:  records[i].SuccessCount,
+			FailureCount:  records[i].FailureCount,
+			AvgDurationUs: records[i].AvgDurationUs,
 		})
 	}
 

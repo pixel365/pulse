@@ -8,5 +8,6 @@ func Routes(r chi.Router, h *Handler) {
 		r.Get("/services/{serviceId}/checks/state", h.ServiceCheckStates)
 		r.Get("/services/{serviceId}/checks/{checkId}/executions", h.CheckExecutions)
 		r.Get("/services/{serviceId}/checks/{checkId}/timeline", h.CheckTimeline)
+		r.Get("/services/{serviceId}/checks/{checkId}/buckets", h.CheckBuckets)
 	})
 }

@@ -88,6 +88,7 @@ Implemented API endpoints:
 - `GET /v1/services/{serviceId}/checks/state`
 - `GET /v1/services/{serviceId}/checks/{checkId}/executions`
 - `GET /v1/services/{serviceId}/checks/{checkId}/timeline`
+- `GET /v1/services/{serviceId}/checks/{checkId}/buckets`
 
 ## Notes
 
@@ -97,6 +98,7 @@ A few implementation details are intentionally narrow at this stage:
 - raw execution history and current check state are stored in PostgreSQL
 - API configuration is read from the latest valid hot-reloaded config snapshot
 - internal architecture is still evolving
+- timeline and bucket endpoints respect per-check `allowed_buckets`
 
 ## Important
 

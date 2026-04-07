@@ -93,6 +93,54 @@ func (h *Handler) timelineFilterFromRequest(
 	return filter, filter.Validate()
 }
 
+func (h *Handler) bucketFilterFromRequest(
+	r *http.Request,
+) (model.CheckExecutionAggregateFilter, error) {
+	filter := model.CheckExecutionAggregateFilter{
+		CheckExecutionFilter: model.CheckExecutionFilter{
+			ServiceID: chi.URLParam(r, "serviceId"),
+			CheckID:   chi.URLParam(r, "checkId"),
+		},
+	}
+
+	query := r.URL.Query()
+
+	if raw := query.Get("from"); raw != "" {
+		from, err := time.Parse(time.RFC3339, raw)
+		if err != nil {
+			return filter, err
+		}
+		filter.From = &from
+	}
+
+	if raw := query.Get("to"); raw != "" {
+		to, err := time.Parse(time.RFC3339, raw)
+		if err != nil {
+			return filter, err
+		}
+		filter.To = &to
+	}
+
+	filter.Bucket = model.CheckExecutionBucket(query.Get("bucket"))
+
+	fields, err := h.checkFields(filter.ServiceID, filter.CheckID)
+	if err != nil {
+		return filter, err
+	}
+
+	if !isAllowedBucket(filter.Bucket, fields.AllowedBuckets) {
+		return filter, fmt.Errorf(
+			"bucket %q is not allowed for check %s/%s; allowed buckets: %v",
+			filter.Bucket,
+			filter.ServiceID,
+			filter.CheckID,
+			allowedBuckets(fields.AllowedBuckets),
+		)
+	}
+
+	return filter, validateBucketFilter(filter)
+}
+
 func allowedBuckets(allowed []string) []string {
 	if len(allowed) > 0 {
 		return allowed
@@ -121,4 +169,23 @@ func isAllowedBucket(bucket model.CheckExecutionBucket, allowed []string) bool {
 	}
 
 	return false
+}
+
+func validateBucketFilter(filter model.CheckExecutionAggregateFilter) error {
+	if filter.ServiceID == "" {
+		return fmt.Errorf("service_id is required")
+	}
+
+	if filter.CheckID == "" {
+		return fmt.Errorf("check_id is required")
+	}
+
+	switch filter.Bucket {
+	case "", model.CheckExecutionBucketSecond, model.CheckExecutionBucketMinute,
+		model.CheckExecutionBucketHour, model.CheckExecutionBucketDay:
+	default:
+		return fmt.Errorf("unsupported bucket %q", filter.Bucket)
+	}
+
+	return nil
 }

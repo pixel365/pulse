@@ -34,6 +34,13 @@ func (e *Execution) ListExecutions(
 	return e.repo.ListExecutions(ctx, filter)
 }
 
+func (e *Execution) ListExecutionBuckets(
+	ctx context.Context,
+	filter model.CheckExecutionAggregateFilter,
+) ([]model.CheckExecutionBucketRecord, error) {
+	return e.repo.ListExecutionBuckets(ctx, filter)
+}
+
 func (e *Execution) ListExecutionTimeline(
 	ctx context.Context,
 	filter model.CheckExecutionTimelineFilter,

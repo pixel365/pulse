@@ -12,9 +12,9 @@ import (
 )
 
 type Handler struct {
-	cfgProvider config.ConfigProvider
-	execution   executionsvc.Service
-	state       state.StateService
+	cfgProvider  config.ConfigProvider
+	executionSvc executionsvc.Service
+	stateSvc     state.StateService
 }
 
 func NewHandler(
@@ -23,9 +23,9 @@ func NewHandler(
 	executionSvc executionsvc.Service,
 ) *Handler {
 	return &Handler{
-		cfgProvider: cfgProvider,
-		state:       stateSvc,
-		execution:   executionSvc,
+		cfgProvider:  cfgProvider,
+		stateSvc:     stateSvc,
+		executionSvc: executionSvc,
 	}
 }
 
@@ -41,7 +41,7 @@ func (h *Handler) ServiceCheckStates(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	states, err := h.state.GetStatesByService(r.Context(), serviceID)
+	states, err := h.stateSvc.GetStatesByService(r.Context(), serviceID)
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
@@ -63,7 +63,7 @@ func (h *Handler) CheckExecutions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	records, err := h.execution.ListExecutions(r.Context(), filter)
+	records, err := h.executionSvc.ListExecutions(r.Context(), filter)
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
@@ -80,7 +80,7 @@ func (h *Handler) CheckTimeline(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	records, err := h.execution.ListExecutionTimeline(r.Context(), filter)
+	records, err := h.executionSvc.ListExecutionTimeline(r.Context(), filter)
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
@@ -88,4 +88,21 @@ func (h *Handler) CheckTimeline(w http.ResponseWriter, r *http.Request) {
 
 	render.Status(r, http.StatusOK)
 	render.JSON(w, r, checkExecutionTimelineResponseFromRecords(records))
+}
+
+func (h *Handler) CheckBuckets(w http.ResponseWriter, r *http.Request) {
+	filter, err := h.bucketFilterFromRequest(r)
+	if err != nil {
+		errorResponse(w, r, statusCode(err, http.StatusBadRequest), err)
+		return
+	}
+
+	records, err := h.executionSvc.ListExecutionBuckets(r.Context(), filter)
+	if err != nil {
+		errorResponse(w, r, http.StatusInternalServerError, err)
+		return
+	}
+
+	render.Status(r, http.StatusOK)
+	render.JSON(w, r, checkExecutionBucketResponseFromRecords(records))
 }
