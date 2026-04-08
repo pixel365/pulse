@@ -47,9 +47,9 @@ INSERT INTO pulse.check_executions (
 		details = data
 	}
 
-	var errKind string
+	var errKind *string
 	if result.ErrorKind != e2.ErrNone {
-		errKind = string(result.ErrorKind)
+		errKind = new(result.ErrorKind.String())
 	}
 
 	_, err := e.db.Exec(ctx, query,
@@ -62,7 +62,7 @@ INSERT INTO pulse.check_executions (
 		result.FinishedAt,
 		result.Duration.Microseconds(),
 		result.AttemptsTotal,
-		&errKind,
+		errKind,
 		result.ErrorMessage,
 		details,
 	)
@@ -281,7 +281,7 @@ WITH params AS (
       CROSS JOIN params p
       WHERE e.service_id = p.service_id
         AND e.check_id = p.check_id
-        AND e.observed_at <= b.bucket_end
+        AND e.observed_at < b.bucket_end
       ORDER BY e.observed_at DESC, e.id DESC
       LIMIT 1
   ) last_event ON TRUE

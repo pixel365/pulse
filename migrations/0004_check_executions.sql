@@ -39,7 +39,7 @@ EXECUTE FUNCTION pulse.delete_prohibited();
 -- +goose Down
 DROP TRIGGER IF EXISTS check_executions_prohibit_delete ON pulse.check_executions;
 DROP TRIGGER IF EXISTS check_executions_prohibit_update ON pulse.check_executions;
-DROP INDEX IF EXISTS check_executions_service_id_idx;
-DROP INDEX IF EXISTS check_executions_check_id_idx;
-DROP INDEX IF EXISTS check_executions_execution_id_uidx;
+DROP INDEX IF EXISTS pulse.check_executions_service_id_idx;
+DROP INDEX IF EXISTS pulse.check_executions_check_id_idx;
+DROP INDEX IF EXISTS pulse.check_executions_execution_id_uidx;
 DROP TABLE IF EXISTS pulse.check_executions;

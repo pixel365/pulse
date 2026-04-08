@@ -34,6 +34,6 @@ EXECUTE FUNCTION pulse.delete_prohibited();
 
 -- +goose Down
 DROP TRIGGER IF EXISTS check_states_prohibit_delete ON pulse.check_states;
-DROP INDEX IF EXISTS check_states_service_id_idx;
-DROP INDEX IF EXISTS check_states_check_id_idx;
+DROP INDEX IF EXISTS pulse.check_states_service_id_idx;
+DROP INDEX IF EXISTS pulse.check_states_check_id_idx;
 DROP TABLE IF EXISTS pulse.check_states;
