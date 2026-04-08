@@ -7,6 +7,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/pixel365/pulse/internal/config"
 	"github.com/pixel365/pulse/internal/e"
 )
 
@@ -14,10 +15,15 @@ func (c *Checker) request(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, c.config.Timeout)
 	defer cancel()
 
-	address := net.JoinHostPort(c.config.Spec.Host, fmt.Sprint(c.config.Spec.Port))
-	serverName := c.config.Spec.ServerName
+	spec, err := config.ResolveTLSSpecEnv(c.config.Spec)
+	if err != nil {
+		return e.NewError(e.ErrInternal, fmt.Sprintf("could not resolve tls spec: %v", err))
+	}
+
+	address := net.JoinHostPort(spec.Host, fmt.Sprint(spec.Port))
+	serverName := spec.ServerName
 	if serverName == "" {
-		serverName = c.config.Spec.Host
+		serverName = spec.Host
 	}
 
 	dialer := &ctls.Dialer{
@@ -52,13 +58,13 @@ func (c *Checker) request(ctx context.Context) error {
 
 	leaf := state.PeerCertificates[0]
 	validityLeft := time.Until(leaf.NotAfter)
-	if validityLeft < c.config.Spec.MinValidity {
+	if validityLeft < spec.MinValidity {
 		return e.NewError(
 			e.ErrConstraint,
 			fmt.Sprintf(
 				"certificate validity %s is below required minimum %s",
 				validityLeft.Truncate(time.Second),
-				c.config.Spec.MinValidity,
+				spec.MinValidity,
 			),
 		)
 	}

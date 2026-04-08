@@ -16,7 +16,12 @@ func (c *Checker) request(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, c.config.Timeout)
 	defer cancel()
 
-	address := net.JoinHostPort(c.config.Spec.Host, fmt.Sprint(c.config.Spec.Port))
+	spec, err := config.ResolveTCPSpecEnv(c.config.Spec)
+	if err != nil {
+		return e.NewError(e.ErrInternal, fmt.Sprintf("could not resolve tcp spec: %v", err))
+	}
+
+	address := net.JoinHostPort(spec.Host, fmt.Sprint(spec.Port))
 	dialer := &net.Dialer{}
 
 	conn, err := dialer.DialContext(ctx, "tcp", address)
@@ -34,13 +39,13 @@ func (c *Checker) request(ctx context.Context) error {
 		}
 	}
 
-	if c.config.Spec.Send != "" {
-		if _, err = io.WriteString(conn, c.config.Spec.Send); err != nil {
+	if spec.Send != "" {
+		if _, err = io.WriteString(conn, spec.Send); err != nil {
 			return fmt.Errorf("could not write tcp payload: %w", err)
 		}
 	}
 
-	if err = checkResponse(conn, c.config.Spec.Expect); err != nil {
+	if err = checkResponse(conn, spec.Expect); err != nil {
 		return err
 	}
 

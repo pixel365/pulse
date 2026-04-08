@@ -10,6 +10,7 @@ import (
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/metadata"
 
+	"github.com/pixel365/pulse/internal/config"
 	"github.com/pixel365/pulse/internal/e"
 )
 
@@ -17,7 +18,12 @@ func (c *Checker) request(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, c.config.Timeout)
 	defer cancel()
 
-	address := net.JoinHostPort(c.config.Spec.Host, fmt.Sprint(c.config.Spec.Port))
+	spec, err := config.ResolveGRPCSpecEnv(c.config.Spec)
+	if err != nil {
+		return e.NewError(e.ErrInternal, fmt.Sprintf("could not resolve grpc spec: %v", err))
+	}
+
+	address := net.JoinHostPort(spec.Host, fmt.Sprint(spec.Port))
 	conn, err := grpc.NewClient(
 		address,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -33,13 +39,13 @@ func (c *Checker) request(ctx context.Context) error {
 		_ = conn.Close()
 	}()
 
-	if len(c.config.Spec.Metadata) > 0 {
-		ctx = metadata.NewOutgoingContext(ctx, metadata.New(c.config.Spec.Metadata))
+	if len(spec.Metadata) > 0 {
+		ctx = metadata.NewOutgoingContext(ctx, metadata.New(spec.Metadata))
 	}
 
 	service := ""
-	if c.config.Spec.Request != nil {
-		service = c.config.Spec.Request.Service
+	if spec.Request != nil {
+		service = spec.Request.Service
 	}
 
 	client := healthpb.NewHealthClient(conn)
@@ -50,12 +56,12 @@ func (c *Checker) request(ctx context.Context) error {
 		return fmt.Errorf("could not execute grpc health check: %w", err)
 	}
 
-	if got := resp.GetStatus().String(); got != string(c.config.Spec.ExpectedHealthStatus) {
+	if got := resp.GetStatus().String(); got != string(spec.ExpectedHealthStatus) {
 		return e.NewError(
 			e.ErrConstraint,
 			fmt.Sprintf(
 				"unexpected grpc health status: expected %s, got %s",
-				c.config.Spec.ExpectedHealthStatus,
+				spec.ExpectedHealthStatus,
 				got,
 			),
 		)

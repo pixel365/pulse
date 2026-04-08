@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"maps"
 	"reflect"
 	"slices"
@@ -52,9 +53,53 @@ type StringExpect struct {
 	Equals   string `yaml:"equals"   json:"equals"`
 }
 
+func (s *StringExpect) Validate() error {
+	if s.Contains != "" && s.Equals != "" {
+		return errors.New("cannot specify both 'contains' and 'equals'")
+	}
+
+	if s.Contains == "" && s.Equals == "" {
+		return errors.New("must specify either 'contains' or 'equals'")
+	}
+
+	if s.Contains != "" {
+		return validateString(s.Contains)
+	}
+
+	if s.Equals != "" {
+		return validateString(s.Equals)
+	}
+
+	return nil
+}
+
 type DNSExpect struct {
 	Contains []string `yaml:"contains" json:"contains"`
 	Equals   []string `yaml:"equals"   json:"equals"`
+}
+
+func (s *DNSExpect) Validate() error {
+	if len(s.Contains) == 0 && len(s.Equals) == 0 {
+		return errors.New("must specify at least one of 'contains' or 'equals'")
+	}
+
+	if len(s.Contains) > 0 && len(s.Equals) > 0 {
+		return errors.New("cannot specify both 'contains' and 'equals'")
+	}
+
+	for _, v := range s.Contains {
+		if err := validateString(v); err != nil {
+			return err
+		}
+	}
+
+	for _, v := range s.Equals {
+		if err := validateString(v); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 type GRPCHealthRequest struct {
@@ -91,6 +136,15 @@ type SpecField[T any] struct {
 	Spec T `yaml:"spec" json:"spec" validate:"required"`
 }
 
+func (s *SpecField[T]) Validate() error {
+	v, ok := any(&s.Spec).(Validator)
+	if !ok {
+		return nil
+	}
+
+	return v.Validate()
+}
+
 type Check struct {
 	SpecField[any] `yaml:",inline" json:",inline"`
 	CheckFields    `yaml:",inline" json:",inline"`
@@ -101,33 +155,77 @@ type TypedCheck[T any] struct {
 	CheckFields  `yaml:",inline" json:",inline"`
 }
 
+func (c *TypedCheck[T]) Validate() error {
+	v, ok := any(&c.Spec).(Validator)
+	if !ok {
+		return nil
+	}
+
+	return v.Validate()
+}
+
 type CheckSet struct {
 	Checks []Check `yaml:"checks" json:"checks" validate:"required,min=1,dive"`
 }
 
 type HttpSpec struct {
-	Headers      map[string]string `yaml:"headers"       json:"headers"       validate:"omitempty,min=1"`
-	Payload      map[string]any    `yaml:"payload"       json:"payload"       validate:"omitempty,min=1"`
-	ExpectedBody *StringExpect     `yaml:"expected_body" json:"expected_body" validate:"omitempty"`
-	URL          string            `yaml:"url"           json:"url"           validate:"required,url"`
+	Headers         map[string]string `yaml:"headers"          json:"headers"          validate:"omitempty,min=1"`
+	Payload         map[string]string `yaml:"payload"          json:"payload"          validate:"omitempty,min=1"`
+	ExpectedBody    *StringExpect     `yaml:"expected_body"    json:"expected_body"    validate:"omitempty"`
+	URL             string            `yaml:"url"              json:"url"              validate:"required,env_url"`
+	Method          string            `yaml:"method"           json:"method"           validate:"required,env_http_method"`
+	SuccessCodes    []int             `yaml:"success_codes"    json:"success_codes"    validate:"required,min=1"`
+	FollowRedirects bool              `yaml:"follow_redirects" json:"follow_redirects" validate:"omitempty"`
+}
 
-	//nolint:lll,nolintlint
-	Method string `yaml:"method" json:"method" validate:"required,oneof=GET POST"`
+func (o *HttpSpec) Validate() error {
+	if err := validateMap(o.Headers); err != nil {
+		return err
+	}
 
-	SuccessCodes    []int `yaml:"success_codes"    json:"success_codes"    validate:"required,min=1"`
-	FollowRedirects bool  `yaml:"follow_redirects" json:"follow_redirects" validate:"omitempty"`
+	if err := validateMap(o.Payload); err != nil {
+		return err
+	}
+
+	if err := validateString(o.Method); err != nil {
+		return err
+	}
+
+	if o.ExpectedBody != nil {
+		if err := o.ExpectedBody.Validate(); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 type TCPSpec struct {
 	Expect *StringExpect `yaml:"expect" json:"expect" validate:"omitempty"`
-	Host   string        `yaml:"host"   json:"host"   validate:"required,hostname_rfc1123|ip"`
+	Host   string        `yaml:"host"   json:"host"   validate:"required,env_host"`
 	Send   string        `yaml:"send"   json:"send"   validate:"omitempty,min=1"`
 	Port   int           `yaml:"port"   json:"port"   validate:"required,gte=1,lte=65535"`
 }
 
+func (o *TCPSpec) Validate() error {
+	if o.Expect != nil {
+		if err := o.Expect.Validate(); err != nil {
+			return err
+		}
+	}
+
+	if o.Send != "" {
+		if err := validateString(o.Send); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 type GRPCSpec struct {
 	Metadata map[string]string  `yaml:"metadata" json:"metadata" validate:"omitempty,min=1"`
-	Host     string             `yaml:"host"     json:"host"     validate:"required,hostname_rfc1123|ip"`
+	Host     string             `yaml:"host"     json:"host"     validate:"required,env_host"`
 	Service  GRPCHealthService  `yaml:"service"  json:"service"  validate:"required,oneof=grpc.health.v1.Health"`
 	Method   GRPCHealthMethod   `yaml:"method"   json:"method"   validate:"required,oneof=Check"`
 	Request  *GRPCHealthRequest `yaml:"request"  json:"request"  validate:"omitempty"`
@@ -138,18 +236,58 @@ type GRPCSpec struct {
 	Port int `yaml:"port" json:"port" validate:"required,gte=1,lte=65535"`
 }
 
+func (o *GRPCSpec) Validate() error {
+	if err := validateMap(o.Metadata); err != nil {
+		return err
+	}
+
+	if o.Request != nil {
+		if o.Request.Service != "" {
+			if err := validateString(o.Request.Service); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 type DNSSpec struct {
 	Expect     *DNSExpect `yaml:"expect"      json:"expect"      validate:"omitempty"`
-	Server     string     `yaml:"server"      json:"server"      validate:"omitempty,hostname_rfc1123|ip"`
+	Server     string     `yaml:"server"      json:"server"      validate:"omitempty,env_host"`
 	Name       string     `yaml:"name"        json:"name"        validate:"required,min=1"`
 	RecordType RecordType `yaml:"record_type" json:"record_type" validate:"required,oneof=A AAAA CNAME TXT MX NS SRV"`
 }
 
+func (o *DNSSpec) Validate() error {
+	if o.Expect != nil {
+		if err := o.Expect.Validate(); err != nil {
+			return err
+		}
+	}
+
+	if err := validateString(o.Name); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 type TLSSpec struct {
-	Host        string        `yaml:"host"         json:"host"         validate:"required,hostname_rfc1123|ip"`
-	ServerName  string        `yaml:"server_name"  json:"server_name"  validate:"omitempty,min=1"`
+	Host        string        `yaml:"host"         json:"host"         validate:"required,env_host"`
+	ServerName  string        `yaml:"server_name"  json:"server_name"  validate:"omitempty,env_host"`
 	Port        int           `yaml:"port"         json:"port"         validate:"required,gte=1,lte=65535"`
 	MinValidity time.Duration `yaml:"min_validity" json:"min_validity" validate:"required,gte=1h"`
+}
+
+func (o *TLSSpec) Validate() error {
+	if o.ServerName != "" {
+		if err := validateString(o.ServerName); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 //nolint:gocyclo,cyclop

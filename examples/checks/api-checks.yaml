@@ -12,16 +12,16 @@ checks:
     allowed_buckets: [ minute, hour ]
     status_impact: critical
     spec:
-      url: http://localhost:8080
-      method: GET
+      url: "${API_HTTP_URL}"
+      method: "${API_HTTP_METHOD}"
       headers:
         Accept: application/json
         Content-Type: application/json
-        Authorization: Bearer xxx
-        X-Custom-Header: yyy
+        Authorization: "Bearer ${API_HTTP_AUTH_TOKEN}"
+        X-Custom-Header: "${API_HTTP_CUSTOM_HEADER}"
       payload:
-        key1: value1
-        key2: value2
+        key1: "${API_HTTP_PAYLOAD_KEY1}"
+        key2: "${API_HTTP_PAYLOAD_KEY2}"
       follow_redirects: true
       success_codes: [ 200 ]
       expected_body:

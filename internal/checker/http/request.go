@@ -18,9 +18,14 @@ func (c *Checker) request(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, c.config.Timeout)
 	defer cancel()
 
+	spec, err := config.ResolveHTTPSpecEnv(c.config.Spec)
+	if err != nil {
+		return e.NewError(e.ErrInternal, fmt.Sprintf("could not resolve http spec: %v", err))
+	}
+
 	cl := &h.Client{
 		CheckRedirect: func(req *h.Request, via []*h.Request) error {
-			if !c.config.Spec.FollowRedirects {
+			if !spec.FollowRedirects {
 				return h.ErrUseLastResponse
 			}
 
@@ -32,12 +37,12 @@ func (c *Checker) request(ctx context.Context) error {
 		},
 	}
 
-	req, err := makeRequest(ctx, c.config)
+	req, err := makeRequest(ctx, spec)
 	if err != nil {
 		return fmt.Errorf("could not make request: %w", err)
 	}
 
-	for k, v := range c.config.Spec.Headers {
+	for k, v := range spec.Headers {
 		req.Header.Set(k, v)
 	}
 
@@ -50,48 +55,48 @@ func (c *Checker) request(ctx context.Context) error {
 		_ = res.Body.Close()
 	}()
 
-	if err = checkCode(res.StatusCode, c.config.Spec.SuccessCodes); err != nil {
+	if err = checkCode(res.StatusCode, spec.SuccessCodes); err != nil {
 		return fmt.Errorf("could not check response code: %w", err)
 	}
 
-	if err = checkBody(c.config.Spec.ExpectedBody, res.Body); err != nil {
+	if err = checkBody(spec.ExpectedBody, res.Body); err != nil {
 		return fmt.Errorf("could not parse response body: %w", err)
 	}
 
 	return nil
 }
 
-func makeRequest(ctx context.Context, config Alias) (*h.Request, error) {
+func makeRequest(ctx context.Context, spec config.HttpSpec) (*h.Request, error) {
 	var req *h.Request
 
-	switch config.Spec.Method {
+	switch spec.Method {
 	case "GET":
-		fullUrl := config.Spec.URL
-		if len(config.Spec.Payload) > 0 {
+		fullUrl := spec.URL
+		if len(spec.Payload) > 0 {
 			params := url.Values{}
-			for k, v := range config.Spec.Payload {
+			for k, v := range spec.Payload {
 				params.Add(k, fmt.Sprint(v))
 			}
 
 			fullUrl = fmt.Sprintf("%s?%s", fullUrl, params.Encode())
 		}
 
-		rq, err := h.NewRequestWithContext(ctx, config.Spec.Method, fullUrl, nil)
+		rq, err := h.NewRequestWithContext(ctx, spec.Method, fullUrl, nil)
 		if err != nil {
 			return nil, fmt.Errorf("could not send request: %w", err)
 		}
 		req = rq
 	case "POST":
 		var payload io.Reader
-		if len(config.Spec.Payload) > 0 {
-			data, err := json.Marshal(config.Spec.Payload)
+		if len(spec.Payload) > 0 {
+			data, err := json.Marshal(spec.Payload)
 			if err != nil {
 				return nil, fmt.Errorf("could not marshal data: %w", err)
 			}
 			payload = bytes.NewReader(data)
 		}
 
-		rq, err := h.NewRequestWithContext(ctx, config.Spec.Method, config.Spec.URL, payload)
+		rq, err := h.NewRequestWithContext(ctx, spec.Method, spec.URL, payload)
 		if err != nil {
 			return nil, fmt.Errorf("could not send request: %w", err)
 		}
@@ -99,7 +104,7 @@ func makeRequest(ctx context.Context, config Alias) (*h.Request, error) {
 	default:
 		return nil, e.NewError(
 			e.ErrInternal,
-			fmt.Sprintf("unsupported method: %s", config.Spec.Method),
+			fmt.Sprintf("unsupported method: %s", spec.Method),
 		)
 	}
 

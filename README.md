@@ -62,7 +62,7 @@ Example configuration files are available in:
 Validate configuration with:
 
 ```bash
-CONFIG_DIR=./examples go run ./cmd/pulse-validate
+API_HTTP_AUTH_TOKEN=dev-token API_HTTP_CUSTOM_HEADER=dev-value CONFIG_DIR=./examples go run ./cmd/pulse-validate
 ```
 
 Before starting the app, apply migrations:
@@ -74,7 +74,7 @@ go run ./cmd/pulse-migrate up
 Run with:
 
 ```bash
-CONFIG_DIR=./examples go run ./cmd/pulse
+API_HTTP_AUTH_TOKEN=dev-token API_HTTP_CUSTOM_HEADER=dev-value CONFIG_DIR=./examples go run ./cmd/pulse
 ```
 
 Run API with:
@@ -82,6 +82,15 @@ Run API with:
 ```bash
 API_LISTEN_ADDR=:8080 INTERNAL_API_ENABLED=true CONFIG_DIR=./examples go run ./cmd/pulse-api
 ```
+
+Check `spec` values may reference environment variables with `${VAR_NAME}` syntax:
+
+```yaml
+headers:
+  Authorization: "Bearer ${API_HTTP_AUTH_TOKEN}"
+```
+
+Referenced variables must be present when the configuration is loaded. Values are resolved at check execution time and are not written back into the loaded config snapshot.
 
 The API process has separate internal and public route groups.
 Both are disabled by default and must be enabled explicitly:

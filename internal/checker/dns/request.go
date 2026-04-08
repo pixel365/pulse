@@ -18,14 +18,19 @@ func (c *Checker) request(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, c.config.Timeout)
 	defer cancel()
 
+	spec, err := config.ResolveDNSSpecEnv(c.config.Spec)
+	if err != nil {
+		return e.NewError(e.ErrInternal, fmt.Sprintf("could not resolve dns spec: %v", err))
+	}
+
 	req := new(mdns.Msg)
 	req.SetQuestion(
-		mdns.Fqdn(c.config.Spec.Name),
-		recordTypeToQType(c.config.Spec.RecordType),
+		mdns.Fqdn(spec.Name),
+		recordTypeToQType(spec.RecordType),
 	)
 	req.RecursionDesired = true
 
-	server, err := resolveServer(c.config.Spec.Server)
+	server, err := resolveServer(spec.Server)
 	if err != nil {
 		return fmt.Errorf("could not resolve dns server: %w", err)
 	}
@@ -46,7 +51,7 @@ func (c *Checker) request(ctx context.Context) error {
 		)
 	}
 
-	values, err := collectAnswers(res.Answer, c.config.Spec.RecordType)
+	values, err := collectAnswers(res.Answer, spec.RecordType)
 	if err != nil {
 		return err
 	}
@@ -54,11 +59,11 @@ func (c *Checker) request(ctx context.Context) error {
 	if len(values) == 0 {
 		return e.NewError(
 			e.ErrConstraint,
-			fmt.Sprintf("no %s records found for %s", c.config.Spec.RecordType, c.config.Spec.Name),
+			fmt.Sprintf("no %s records found for %s", spec.RecordType, spec.Name),
 		)
 	}
 
-	if err = checkAnswers(c.config.Spec.Expect, c.config.Spec.RecordType, values); err != nil {
+	if err = checkAnswers(spec.Expect, spec.RecordType, values); err != nil {
 		return err
 	}
 

@@ -171,10 +171,6 @@ func decodeTypedCheck[T any](raw Check) (TypedCheck[T], error) {
 		return typedCheck, fmt.Errorf("failed to unmarshal check spec: %w", err)
 	}
 
-	if err = validateStruct(typedCheck); err != nil {
-		return typedCheck, fmt.Errorf("failed to validate check spec: %w", err)
-	}
-
 	return typedCheck, nil
 }
 
@@ -186,6 +182,10 @@ func appendTypedCheck[T any](dst map[string]TypedCheck[T], raw Check) error {
 	typedCheck, err := decodeTypedCheck[T](raw)
 	if err != nil {
 		return err
+	}
+
+	if err = validateStruct(&typedCheck); err != nil {
+		return fmt.Errorf("failed to validate check spec: %w", err)
 	}
 
 	dst[raw.ID] = typedCheck
