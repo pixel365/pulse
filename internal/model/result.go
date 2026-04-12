@@ -65,6 +65,15 @@ type CheckState struct {
 	ConsecutiveFailures  int                  `json:"consecutive_failures"`
 }
 
+type ServiceState struct {
+	ServiceID       string             `json:"service_id"`
+	Status          ServiceStateStatus `json:"status"`
+	TotalChecks     int                `json:"total_checks"`
+	HealthyChecks   int                `json:"healthy_checks"`
+	UnhealthyChecks int                `json:"unhealthy_checks"`
+	UnknownChecks   int                `json:"unknown_checks"`
+}
+
 type CheckPolicy struct {
 	CheckID          string
 	ServiceID        string

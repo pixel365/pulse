@@ -30,8 +30,14 @@ func NewHandler(
 }
 
 func (h *Handler) Services(w http.ResponseWriter, r *http.Request) {
+	serviceStates, err := h.stateSvc.ListServiceStates(r.Context(), h.cfgProvider.Current())
+	if err != nil {
+		errorResponse(w, r, http.StatusInternalServerError, err)
+		return
+	}
+
 	render.Status(r, http.StatusOK)
-	render.JSON(w, r, h.cfgProvider.Current().Services)
+	render.JSON(w, r, servicesResponse(h.cfgProvider.Current(), serviceStates))
 }
 
 func (h *Handler) ServiceCheckStates(w http.ResponseWriter, r *http.Request) {
@@ -48,7 +54,7 @@ func (h *Handler) ServiceCheckStates(w http.ResponseWriter, r *http.Request) {
 	}
 
 	render.Status(r, http.StatusOK)
-	render.JSON(w, r, states)
+	render.JSON(w, r, checkStatesResponse(h.cfgProvider.Current(), serviceID, states))
 }
 
 func (h *Handler) CheckExecutions(w http.ResponseWriter, r *http.Request) {

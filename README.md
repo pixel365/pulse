@@ -33,12 +33,13 @@ What exists today:
 - PostgreSQL-backed raw check execution storage
 - persisted current check state
 - persisted check state event history
+- service-level state aggregation on read path
 - migration CLI via `cmd/pulse-migrate`
 - early REST API via `cmd/pulse-api`
 
 What does not exist yet in a finished form:
 
-- finalized service-level aggregation
+- persisted service-level aggregation
 - complete query/read API for current and historical state
 - public/internal status page generation
 - production-ready logging and observability
@@ -100,7 +101,7 @@ Both are disabled by default and must be enabled explicitly:
 
 Implemented internal API endpoints:
 
-- `GET /internal/v1/services`
+- `GET /internal/v1/services` returns services with aggregated current status
 - `GET /internal/v1/services/{serviceId}/checks/state`
 - `GET /internal/v1/services/{serviceId}/checks/{checkId}/executions`
 - `GET /internal/v1/services/{serviceId}/checks/{checkId}/timeline`
