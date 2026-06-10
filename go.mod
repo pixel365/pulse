@@ -3,7 +3,7 @@ module github.com/pixel365/pulse
 go 1.26.1
 
 require (
-	github.com/exaring/otelpgx v0.10.0
+	github.com/exaring/otelpgx v0.11.1
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/go-chi/render v1.0.3
 	github.com/go-playground/validator/v10 v10.30.2
