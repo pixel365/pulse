@@ -14,7 +14,7 @@ require (
 	github.com/miekg/dns v1.1.73
 	github.com/pressly/goose/v3 v3.28.0
 	github.com/spf13/cobra v1.10.2
-	golang.org/x/sync v0.22.0
+	golang.org/x/sync v0.23.0
 	google.golang.org/grpc v1.83.2
 )
 
