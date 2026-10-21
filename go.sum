@@ -10,8 +10,8 @@ github.com/exaring/otelpgx v0.11.1 h1:pE79fIg/qh/Lpu00kvswFC5dKfqyJJhMJ4Y4N3w5Lj
 github.com/exaring/otelpgx v0.11.1/go.mod h1:3OojrUKhhy3lTbYIMBijP3YjMey/jo14eHAW5cXcUdk=
 github.com/gabriel-vasile/mimetype v1.4.15 h1:05iP/CYtZ/w455R/KZM6rZ5ieAdh99UPtd+d3YzLmaI=
 github.com/gabriel-vasile/mimetype v1.4.15/go.mod h1:azpTcoLcDZRNgFou5j+APrqQx9HqVPWa6ijYQIIVswQ=
-github.com/go-chi/chi/v5 v5.3.2 h1:5YQkICvTCSZ25hoRsyJazN0scjzKGiu4VAUc7H1o1nY=
-github.com/go-chi/chi/v5 v5.3.2/go.mod h1:R+tYY2hNuVUUjxoPtqUdgBqevM9s9njzkTLutVsOCto=
+github.com/go-chi/chi/v5 v5.5.0 h1:xdKQ1dJmVJsmgahrXSKhUx8NyVPzpwdlyrrQFpMPJgg=
+github.com/go-chi/chi/v5 v5.5.0/go.mod h1:d1IG7GtKPSjPyBP365PH8sAGVHk3qfB/IhjFNRH1wWM=
 github.com/go-chi/render v1.0.3 h1:AsXqd2a1/INaIfUSKq3G5uA8weYx20FOsM7uSoCyyt4=
 github.com/go-chi/render v1.0.3/go.mod h1:/gr3hVkmYR0YlEy3LxCuVRFzEu9Ruok+gFqbIofjao0=
 github.com/go-logr/logr v1.2.2/go.mod h1:jdQByPbusPIv2/zmleS9BjJVeZ6kBagPoEUsqbVz/1A=
